@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.config import settings
-from app.db.session import SessionLocal
+from app.db.base import SessionLocal
 from app.repositories import activity_repo
 
 logger = logging.getLogger(__name__)

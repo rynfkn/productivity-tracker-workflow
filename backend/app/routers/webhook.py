@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from sqlalchemy.orm import Session
 
-from app.db.session import SessionLocal
+from app.db.base import SessionLocal
 from app.repositories import activity_log_repo
 
 router = APIRouter(prefix="/webhook", tags=["webhook"])

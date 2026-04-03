@@ -5,8 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.db.base import Base
-from app.db.session import engine
+from app.db.base import Base, engine
 from app.routers.api import router as api_router
 from app.routers.health import router as health_router
 from app.routers.webhook import router as webhook_router

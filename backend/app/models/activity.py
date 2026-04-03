@@ -1,13 +1,15 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import declarative_base, relationship
 
-Base = declarative_base()
+from sqlalchemy import Column, DateTime, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import relationship
 
-class activity(Base):
-    __tablename__ = 'activity'
+from app.db.base import Base
+
+
+class Activity(Base):
+    __tablename__ = "activities"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     activity_name = Column(String(255), nullable=False)
@@ -16,7 +18,8 @@ class activity(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     activity_deadline = Column(DateTime(timezone=True), nullable=True)
-    time_start = Column(DateTime(timezone=True), nullable=True)
-    time_end = Column(DateTime(timezone=True), nullable=True)
+    time_span = Column(JSONB, nullable=True)
 
-    logs = relationship("activity_log", back_populates="activity", cascade="all, delete-orphan")
+    logs = relationship(
+        "ActivityLog", back_populates="activity", cascade="all, delete-orphan"
+    )
