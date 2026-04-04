@@ -1,3 +1,6 @@
+import logging
+import re
+
 from fastapi import APIRouter, Request
 from sqlalchemy.orm import Session
 
@@ -6,6 +9,8 @@ from app.repositories import activity_log_repo
 
 router = APIRouter(prefix="/webhook", tags=["webhook"])
 
+logger = logging.getLogger(__name__)
+ACTIVITY_REF_RE = re.compile(r"Ref:\s*([0-9a-fA-F-]{36})")
 
 @router.post("/telegram")
 async def telegram_webhook(request: Request):
@@ -13,23 +18,54 @@ async def telegram_webhook(request: Request):
 
     message = data.get("message") or {}
     chat = message.get("chat") or {}
-    chat_id = chat.get("id")
-    user_text = message.get("text")
+    reply_to = message.get("reply_to_message") or {}
+
+    chat_id = str(chat.get("id") or "")
+    user_text = (message.get("text") or "").strip()
+    reply_to_text = (reply_to.get("text") or "").strip()
+    message_id = message.get("message_id")
+    reply_to_message_id = reply_to.get("message_id")
 
     if not chat_id or not user_text:
         return {"ok": True, "message": "ignored"}
+
+    match = ACTIVITY_REF_RE.search(reply_to_text) or ACTIVITY_REF_RE.search(user_text)
+    if not match:
+        logger.info(
+            "telegram_webhook ignored chat_id=%s message_id=%s reason=no_activity_ref",
+            chat_id,
+            message_id,
+        )
+        return {"ok": True, "message": "ignored: no activity ref"}
+
+    activity_id = match.group(1)
+
+    logger.info(
+        "telegram_webhook received chat_id=%s message_id=%s reply_to_message_id=%s activity_id=%s text=%r",
+        chat_id,
+        message_id,
+        reply_to_message_id,
+        activity_id,
+        user_text,
+    )
 
     # Continue workflow after interrupt
     from workflow.graph import app as workflow_app
 
     result = workflow_app.invoke(
-        {"user_response": user_text, "chat_id": str(chat_id)},
-        config={"configurable": {"thread_id": str(chat_id)}},
+        {
+            "activity_id": str(activity_id),
+            "chat_id": str(chat_id),
+            "user_response": user_text,
+        },
+        config={"configurable": {"thread_id": f"{chat_id}:{activity_id}"}},
     )
 
-    # Optional best-effort log if activity_id available in workflow output
-    activity_id = result.get("activity_id") if isinstance(result, dict) else None
-    if activity_id:
+    if isinstance(result, dict):
+        logger.info("telegram_webhook workflow_result activity_id=%s result=%s", activity_id, result)
+
+    # Optional best-effort log
+    if activity_id and isinstance(result, dict):
         db: Session = SessionLocal()
         try:
             activity_log_repo.create_log(
