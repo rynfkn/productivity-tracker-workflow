@@ -1,4 +1,5 @@
 from datetime import datetime
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import Activity
@@ -49,3 +50,75 @@ def update_status(db: Session, activity_id, status: str) -> Activity | None:
     db.commit()
     db.refresh(item)
     return item
+
+
+def get_progress_summary(db: Session, *, start: datetime, end: datetime) -> dict:
+    total_planned = (
+        db.query(func.count(Activity.id))
+        .filter(Activity.created_at >= start)
+        .filter(Activity.created_at < end)
+        .scalar()
+        or 0
+    )
+
+    total_completed = (
+        db.query(func.count(Activity.id))
+        .filter(Activity.completed_at.isnot(None))
+        .filter(Activity.completed_at >= start)
+        .filter(Activity.completed_at < end)
+        .scalar()
+        or 0
+    )
+
+    habits_total = (
+        db.query(func.count(Activity.id))
+        .filter(Activity.activity_kind == "habit")
+        .filter(Activity.created_at >= start)
+        .filter(Activity.created_at < end)
+        .scalar()
+        or 0
+    )
+
+    habits_completed = (
+        db.query(func.count(Activity.id))
+        .filter(Activity.activity_kind == "habit")
+        .filter(Activity.completed_at.isnot(None))
+        .filter(Activity.completed_at >= start)
+        .filter(Activity.completed_at < end)
+        .scalar()
+        or 0
+    )
+
+    reminders_total = (
+        db.query(func.count(Activity.id))
+        .filter(Activity.activity_kind == "reminder")
+        .filter(Activity.created_at >= start)
+        .filter(Activity.created_at < end)
+        .scalar()
+        or 0
+    )
+
+    reminders_completed = (
+        db.query(func.count(Activity.id))
+        .filter(Activity.activity_kind == "reminder")
+        .filter(Activity.completed_at.isnot(None))
+        .filter(Activity.completed_at >= start)
+        .filter(Activity.completed_at < end)
+        .scalar()
+        or 0
+    )
+
+    completion_rate = round((total_completed / total_planned), 4) if total_planned else 0.0
+
+    return {
+        "period_start": start,
+        "period_end": end,
+        "total_planned": int(total_planned),
+        "total_completed": int(total_completed),
+        "habits": {"completed": int(habits_completed), "total": int(habits_total)},
+        "reminders": {
+            "completed": int(reminders_completed),
+            "total": int(reminders_total),
+        },
+        "completion_rate": completion_rate,
+    }

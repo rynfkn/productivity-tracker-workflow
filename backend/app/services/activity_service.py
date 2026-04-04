@@ -1,5 +1,9 @@
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.repositories import activity_repo
 from app.repositories import reminder_schedule_repo
 from app.schemas.activity import ActivityCreate
@@ -20,3 +24,15 @@ def create_new_activity(db: Session, payload: ActivityCreate):
     )
     reminder_schedule_repo.create_schedule_for_activity(db, activity)
     return activity
+
+
+def get_progress_summary(db: Session, *, start: datetime, end: datetime) -> dict:
+    return activity_repo.get_progress_summary(db, start=start, end=end)
+
+
+def get_today_progress_summary(db: Session) -> dict:
+    tz = ZoneInfo(settings.SCHEDULER_TIMEZONE)
+    now = datetime.now(tz)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=1)
+    return activity_repo.get_progress_summary(db, start=start, end=end)

@@ -50,3 +50,18 @@ class ActivityResponse(BaseModel):
 
 class ActivityStatusUpdate(BaseModel):
     status: str = Field(pattern="^(pending|done|failed|reschedule)$")
+
+
+class ProgressBucket(BaseModel):
+    completed: int
+    total: int
+
+
+class ProgressSummaryResponse(BaseModel):
+    period_start: datetime
+    period_end: datetime
+    total_planned: int
+    total_completed: int
+    habits: ProgressBucket
+    reminders: ProgressBucket
+    completion_rate: float
