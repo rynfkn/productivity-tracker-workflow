@@ -7,7 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.config import settings
 from app.db.base import SessionLocal
-from app.repositories import activity_repo
+from app.repositories import reminder_schedule_repo
 
 logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler(timezone=settings.SCHEDULER_TIMEZONE)
@@ -38,14 +38,59 @@ def check_and_trigger_activities() -> None:
     db = SessionLocal()
     try:
         now = datetime.now(timezone.utc)
-        due = activity_repo.get_due_pending_activities(db, now=now)
-        logger.info("Scheduler tick now_utc=%s due_count=%d", now.isoformat(), len(due))
-        for item in due:
+        due = reminder_schedule_repo.get_due_pending_reminders(db, now=now)
+        logger.info("Scheduler tick now_utc=%s due_reminder_count=%d", now.isoformat(), len(due))
+        for schedule in due:
             chat_id = settings.USER_CHAT_ID
             if not chat_id:
-                logger.warning("USER_CHAT_ID is empty; skip trigger activity_id=%s", item.id)
+                logger.warning(
+                    "USER_CHAT_ID is empty; skip trigger schedule_id=%s activity_id=%s",
+                    schedule.id,
+                    schedule.activity_id,
+                )
+                reminder_schedule_repo.mark_failed(
+                    db,
+                    schedule.id,
+                    error_message="USER_CHAT_ID is empty",
+                )
                 continue
-            _invoke_workflow(activity_id=str(item.id), chat_id=chat_id)
+
+            if schedule.activity and schedule.activity.status != "pending":
+                logger.info(
+                    "Skip non-pending activity schedule_id=%s activity_id=%s activity_status=%s",
+                    schedule.id,
+                    schedule.activity_id,
+                    schedule.activity.status,
+                )
+                reminder_schedule_repo.mark_failed(
+                    db,
+                    schedule.id,
+                    error_message=f"activity status is {schedule.activity.status}",
+                )
+                continue
+
+            try:
+                logger.info(
+                    "Trigger reminder schedule_id=%s activity_id=%s reminder_kind=%s remind_at=%s",
+                    schedule.id,
+                    schedule.activity_id,
+                    schedule.reminder_kind,
+                    schedule.remind_at,
+                )
+                _invoke_workflow(activity_id=str(schedule.activity_id), chat_id=chat_id)
+                reminder_schedule_repo.mark_sent(db, schedule.id)
+            except Exception as exc:
+                logger.exception(
+                    "Reminder trigger failed schedule_id=%s activity_id=%s: %s",
+                    schedule.id,
+                    schedule.activity_id,
+                    exc,
+                )
+                reminder_schedule_repo.mark_failed(
+                    db,
+                    schedule.id,
+                    error_message=str(exc),
+                )
     except Exception as exc:
         logger.exception("scheduler check failed: %s", exc)
     finally:
@@ -59,7 +104,7 @@ def start_scheduler() -> None:
         check_and_trigger_activities,
         "interval",
         seconds=settings.SCHEDULER_INTERVAL_SECONDS,
-        id="check_due_activities",
+        id="check_due_reminders",
         replace_existing=True,
     )
     scheduler.start()
