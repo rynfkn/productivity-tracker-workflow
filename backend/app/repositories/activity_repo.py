@@ -12,15 +12,17 @@ def create_activity(
     db: Session,
     *,
     activity_name: str,
-    activity_type: str,
-    activity_deadline: datetime | None = None,
-    time_span: dict | None = None,
+    activity_kind: str,
+    start_at: datetime | None = None,
+    deadline_at: datetime,
+    reminder_offsets_minutes: list[int] | None = None,
 ) -> Activity:
     item = Activity(
         activity_name=activity_name,
-        activity_type=activity_type,
-        activity_deadline=activity_deadline,
-        time_span=time_span,
+        activity_kind=activity_kind,
+        start_at=start_at,
+        deadline_at=deadline_at,
+        reminder_offsets_minutes=reminder_offsets_minutes,
         status="pending",
     )
     db.add(item)
@@ -33,8 +35,8 @@ def get_due_pending_activities(db: Session, now: datetime) -> list[Activity]:
     return (
         db.query(Activity)
         .filter(Activity.status == "pending")
-        .filter(Activity.activity_deadline.isnot(None))
-        .filter(Activity.activity_deadline <= now)
+        .filter(Activity.deadline_at.isnot(None))
+        .filter(Activity.deadline_at <= now)
         .all()
     )
 

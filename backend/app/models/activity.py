@@ -13,12 +13,14 @@ class Activity(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     activity_name = Column(String(255), nullable=False)
-    activity_type = Column(String(255), nullable=False)
+    activity_kind = Column(String(20), nullable=False, default="reminder")
     status = Column(String(20), default="pending")
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
-    activity_deadline = Column(DateTime(timezone=True), nullable=True)
-    time_span = Column(JSONB, nullable=True)
+    start_at = Column(DateTime(timezone=True), nullable=True)
+    deadline_at = Column(DateTime(timezone=True), nullable=True)
+    reminder_offsets_minutes = Column(JSONB, nullable=True)
 
     logs = relationship(
         "ActivityLog", back_populates="activity", cascade="all, delete-orphan"
