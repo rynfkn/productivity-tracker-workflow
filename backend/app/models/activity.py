@@ -25,3 +25,6 @@ class Activity(Base):
     logs = relationship(
         "ActivityLog", back_populates="activity", cascade="all, delete-orphan"
     )
+    reminder_schedules = relationship(
+        "ReminderSchedule", back_populates="activity", cascade="all, delete-orphan"
+    )
