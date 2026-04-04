@@ -13,7 +13,7 @@ def get_backend_bindings() -> dict[str, Any]:
             "SessionLocal": SessionLocal,
             "ActivityModel": Activity,
             "ActivityLogModel": ActivityLog,
-            "deadline_field": "activity_deadline",
+            "deadline_field": "deadline_at",
         }
     except Exception:
         pass
@@ -26,5 +26,5 @@ def get_backend_bindings() -> dict[str, Any]:
         "SessionLocal": SessionLocal,
         "ActivityModel": activity,
         "ActivityLogModel": activity_log,
-        "deadline_field": "activity_deadline",
+        "deadline_field": "deadline_at",
     }

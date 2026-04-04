@@ -31,7 +31,7 @@ def node_send_message(state: ProductivityState) -> ProductivityState:
         msg = (
             f"Activity reminder:\n"
             f"- Name: {item.activity_name}\n"
-            f"- Type: {item.activity_type}\n\n"
+            f"- Type: {item.activity_kind}\n\n"
             f"Has this activity been completed?\n"
             f"Ref: {item.id}"
         )
