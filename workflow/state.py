@@ -9,5 +9,6 @@ class ProductivityState(TypedDict, total=False):
 
     intent_nlp: dict[str, Any]
     status: str
+    reschedule_deadline: str
 
     error: str

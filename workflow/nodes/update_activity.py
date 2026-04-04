@@ -1,5 +1,25 @@
+from datetime import datetime, timezone
+
 from workflow.state import ProductivityState
 from workflow.nodes._backend import get_backend_bindings
+
+
+def _parse_iso_datetime(raw: str | None) -> datetime | None:
+    if not raw:
+        return None
+    text = raw.strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def node_update_activity(state: ProductivityState) -> ProductivityState:
@@ -21,11 +41,34 @@ def node_update_activity(state: ProductivityState) -> ProductivityState:
 
     db = SessionLocal()
     try:
+        from backend.app.repositories import reminder_schedule_repo
+
         item = db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
         if not item:
             return {"error": f"activity not found: {activity_id}"}
 
-        item.status = new_status
+        if new_status == "done":
+            item.status = "done"
+            item.completed_at = datetime.now(timezone.utc)
+        elif new_status == "reschedule":
+            requested_deadline = _parse_iso_datetime(
+                state.get("reschedule_deadline")
+                or (state.get("intent_nlp") or {}).get("new_deadline")
+            )
+            if requested_deadline is None:
+                return {"error": "reschedule requested but no valid new deadline was provided"}
+
+            item.deadline_at = requested_deadline
+            item.status = "pending"
+            item.completed_at = None
+
+            reminder_schedule_repo.replace_future_pending_schedule_for_activity(
+                db,
+                item,
+                now=datetime.now(timezone.utc),
+            )
+        else:
+            item.status = new_status
 
         log = ActivityLogModel(
             activity_id=item.id,

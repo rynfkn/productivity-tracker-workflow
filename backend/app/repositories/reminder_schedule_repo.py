@@ -21,8 +21,17 @@ def _build_schedule_points(activity: Activity) -> list[tuple[datetime, str]]:
     return sorted(points, key=lambda item: item[0])
 
 
-def create_schedule_for_activity(db: Session, activity: Activity) -> list[ReminderSchedule]:
+def create_schedule_for_activity(
+    db: Session,
+    activity: Activity,
+    *,
+    min_remind_at: datetime | None = None,
+) -> list[ReminderSchedule]:
     schedule_points = _build_schedule_points(activity)
+    if min_remind_at is not None:
+        schedule_points = [
+            point for point in schedule_points if point[0] >= min_remind_at
+        ]
     if not schedule_points:
         return []
 
@@ -66,7 +75,7 @@ def replace_future_pending_schedule_for_activity(
         .delete(synchronize_session=False)
     )
     db.commit()
-    return create_schedule_for_activity(db, activity)
+    return create_schedule_for_activity(db, activity, min_remind_at=now)
 
 
 def get_due_pending_reminders(db: Session, now: datetime) -> list[ReminderSchedule]:

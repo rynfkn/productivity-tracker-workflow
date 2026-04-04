@@ -19,4 +19,5 @@ def node_analyze_intent(state: ProductivityState) -> ProductivityState:
         "user_response": user_response,
         "intent_nlp": intent,
         "status": status,
+        "reschedule_deadline": intent.get("new_deadline") or "",
     }
