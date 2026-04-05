@@ -1,121 +1,72 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useMemo, useState } from 'react'
+import { ActivitiesPage } from './pages/ActivitiesPage.tsx'
+import { DashboardPage } from './pages/DashboardPage.tsx'
+
+type AppRoute = '/dashboard' | '/activities'
+
+function getRouteFromPath(pathname: string): AppRoute {
+  if (pathname.startsWith('/activities')) return '/activities'
+  return '/dashboard'
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [route, setRoute] = useState<AppRoute>(
+    getRouteFromPath(window.location.pathname),
+  )
+
+  useEffect(() => {
+    const onPopState = () => setRoute(getRouteFromPath(window.location.pathname))
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  const navigate = (next: AppRoute) => {
+    if (route === next) return
+    window.history.pushState({}, '', next)
+    setRoute(next)
+  }
+
+  const title = useMemo(() => {
+    return route === '/dashboard' ? 'Overview' : 'Activities & Habits'
+  }, [route])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <header className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end justify-between border-b border-slate-200/60 pb-5 dark:border-slate-800/60">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">Productivity</h1>
+          <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        <nav className="flex space-x-1 rounded-lg bg-slate-100/80 p-1 dark:bg-slate-800/80" aria-label="Main navigation">
+          <button
+            className={`flex items-center rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              route === '/dashboard'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white'
+                : 'text-slate-500 hover:bg-white/50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700/50 dark:hover:text-slate-300'
+            }`}
+            onClick={() => navigate('/dashboard')}
+          >
+            Dashboard
+          </button>
+          <button
+             className={`flex items-center rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              route === '/activities'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white'
+                : 'text-slate-500 hover:bg-white/50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700/50 dark:hover:text-slate-300'
+            }`}
+            onClick={() => navigate('/activities')}
+          >
+            Activities
+          </button>
+        </nav>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <main>
+        {route === '/dashboard' ? <DashboardPage /> : <ActivitiesPage />}
+      </main>
+    </div>
   )
 }
 
 export default App
+
