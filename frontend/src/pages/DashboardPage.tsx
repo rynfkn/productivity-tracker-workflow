@@ -16,7 +16,10 @@ interface HeatWeek {
 }
 
 function toDateKey(date: Date) {
-  return date.toISOString().slice(0, 10)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function startOfDay(date: Date): Date {
@@ -110,9 +113,9 @@ export function DashboardPage() {
   useEffect(() => {
     let active = true
 
-    async function load() {
+    async function load(silent = false) {
       try {
-        setLoading(true)
+        if (!silent) setLoading(true)
         const [activitiesData, todayData] = await Promise.all([
           listActivities(),
           getTodayProgress(),
@@ -125,13 +128,26 @@ export function DashboardPage() {
         if (!active) return
         setError(err instanceof Error ? err.message : 'Failed to load dashboard')
       } finally {
-        if (active) setLoading(false)
+        if (active && !silent) setLoading(false)
       }
     }
 
     void load()
+
+    const onFocus = () => {
+      void load(true)
+    }
+
+    const intervalId = window.setInterval(() => {
+      void load(true)
+    }, 30000)
+
+    window.addEventListener('focus', onFocus)
+
     return () => {
       active = false
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
     }
   }, [])
 

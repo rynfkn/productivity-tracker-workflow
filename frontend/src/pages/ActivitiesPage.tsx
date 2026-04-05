@@ -1,21 +1,38 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import { createActivity, listActivities } from '../api'
 import type { Activity, ActivityCreatePayload, ActivityKind } from '../types'
 
 interface FormState {
   activity_name: string
   activity_kind: ActivityKind
-  start_at_local: string
-  deadline_at_local: string
+  start_at: Date | null
+  deadline_at: Date | null
   offsets_text: string
 }
 
-const initialForm: FormState = {
-  activity_name: '',
-  activity_kind: 'habit',
-  start_at_local: '',
-  deadline_at_local: '',
-  offsets_text: '30',
+function roundToNearest(minutesStep: number, date: Date): Date {
+  const copy = new Date(date)
+  const ms = 1000 * 60 * minutesStep
+  return new Date(Math.ceil(copy.getTime() / ms) * ms)
+}
+
+function createInitialForm(): FormState {
+  const nowRounded = roundToNearest(15, new Date())
+  const start = new Date(nowRounded)
+  start.setMinutes(start.getMinutes() + 5)
+
+  const deadline = new Date(nowRounded)
+  deadline.setHours(deadline.getHours() + 1)
+
+  return {
+    activity_name: '',
+    activity_kind: 'habit',
+    start_at: start,
+    deadline_at: deadline,
+    offsets_text: '30',
+  }
 }
 
 function formatDateTime(value: string | null) {
@@ -23,8 +40,8 @@ function formatDateTime(value: string | null) {
   return new Date(value).toLocaleString()
 }
 
-function toIso(localDateTime: string): string {
-  return new Date(localDateTime).toISOString()
+function toIso(date: Date): string {
+  return date.toISOString()
 }
 
 function parseOffsets(input: string): number[] {
@@ -60,7 +77,7 @@ export function ActivitiesPage() {
   const [error, setError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<FormState>(initialForm)
+  const [form, setForm] = useState<FormState>(() => createInitialForm())
 
   const pendingCount = useMemo(
     () => activities.filter((item) => item.status === 'pending').length,
@@ -92,11 +109,11 @@ export function ActivitiesPage() {
       setError('Activity name is required')
       return
     }
-    if (!form.deadline_at_local) {
+    if (!form.deadline_at) {
       setError('Deadline is required')
       return
     }
-    if (form.activity_kind === 'habit' && !form.start_at_local) {
+    if (form.activity_kind === 'habit' && !form.start_at) {
       setError('Start time is required for habit')
       return
     }
@@ -108,19 +125,19 @@ export function ActivitiesPage() {
     const payload: ActivityCreatePayload = {
       activity_name: form.activity_name.trim(),
       activity_kind: form.activity_kind,
-      deadline_at: toIso(form.deadline_at_local),
+      deadline_at: toIso(form.deadline_at),
       reminder_offsets_minutes: offsets,
     }
 
-    if (form.activity_kind === 'habit') {
-      payload.start_at = toIso(form.start_at_local)
+    if (form.activity_kind === 'habit' && form.start_at) {
+      payload.start_at = toIso(form.start_at)
     }
 
     try {
       setSaving(true)
       await createActivity(payload)
       setModalOpen(false)
-      setForm(initialForm)
+      setForm(createInitialForm())
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create activity')
@@ -234,27 +251,38 @@ export function ActivitiesPage() {
 
               {form.activity_kind === 'habit' && (
                 <label className="grid gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Start time
-                  <input
-                    className="rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition-shadow focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-slate-800 text-slate-900 dark:text-slate-100"
-                    type="datetime-local"
-                    value={form.start_at_local}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, start_at_local: e.target.value }))
+                  Start schedule
+                  <DatePicker
+                    selected={form.start_at}
+                    onChange={(value: Date | null) =>
+                      setForm((prev) => ({ ...prev, start_at: value }))
                     }
+                    showTimeSelect
+                    timeIntervals={15}
+                    timeCaption="Time"
+                    dateFormat="PPpp"
+                    placeholderText="Choose start date and time"
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition-shadow focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    popperClassName="z-50"
                   />
                 </label>
               )}
 
               <label className="grid gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-                Deadline
-                <input
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition-shadow focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-slate-800 text-slate-900 dark:text-slate-100"
-                  type="datetime-local"
-                  value={form.deadline_at_local}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, deadline_at_local: e.target.value }))
+                Deadline schedule
+                <DatePicker
+                  selected={form.deadline_at}
+                  onChange={(value: Date | null) =>
+                    setForm((prev) => ({ ...prev, deadline_at: value }))
                   }
+                  showTimeSelect
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="PPpp"
+                  placeholderText="Choose deadline date and time"
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition-shadow focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  minDate={new Date()}
+                  popperClassName="z-50"
                 />
               </label>
 
