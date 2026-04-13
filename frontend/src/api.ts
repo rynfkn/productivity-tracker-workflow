@@ -54,3 +54,7 @@ export function getTodayProgress() {
 export function getHabitProgress() {
   return request<HabitProgress[]>('/api/habits/progress')
 }
+
+export function getCompletions() {
+  return request<Activity[]>('/api/completions')
+}

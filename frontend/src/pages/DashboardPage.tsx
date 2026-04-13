@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getHabitProgress, getTodayProgress, listActivities } from '../api'
+import { getCompletions, getHabitProgress, getTodayProgress } from '../api'
 import type { Activity, HabitProgress, ProgressSummary } from '../types'
 
 interface HeatDay {
@@ -117,13 +117,13 @@ export function DashboardPage() {
     async function load(silent = false) {
       try {
         if (!silent) setLoading(true)
-        const [activitiesData, todayData, habitData] = await Promise.all([
-          listActivities(),
+        const [completionsData, todayData, habitData] = await Promise.all([
+          getCompletions(),
           getTodayProgress(),
           getHabitProgress(),
         ])
         if (!active) return
-        setActivities(activitiesData)
+        setActivities(completionsData)
         setToday(todayData)
         setHabitProgress(habitData)
         setError('')
