@@ -34,3 +34,17 @@ export interface ActivityCreatePayload {
   deadline_at: string
   reminder_offsets_minutes: number[]
 }
+
+export interface ActivityUpdatePayload {
+  activity_name?: string
+  start_at?: string | null
+  deadline_at?: string
+  reminder_offsets_minutes?: number[]
+}
+
+export interface HabitProgress {
+  habit_name: string
+  done: number
+  missed: number
+  total: number
+}

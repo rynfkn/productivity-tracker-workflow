@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getTodayProgress, listActivities } from '../api'
-import type { Activity, ProgressSummary } from '../types'
+import { getHabitProgress, getTodayProgress, listActivities } from '../api'
+import type { Activity, HabitProgress, ProgressSummary } from '../types'
 
 interface HeatDay {
   dateKey: string
@@ -107,6 +107,7 @@ function buildHeatWeeks(activities: Activity[]): HeatWeek[] {
 export function DashboardPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [today, setToday] = useState<ProgressSummary | null>(null)
+  const [habitProgress, setHabitProgress] = useState<HabitProgress[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
 
@@ -116,13 +117,15 @@ export function DashboardPage() {
     async function load(silent = false) {
       try {
         if (!silent) setLoading(true)
-        const [activitiesData, todayData] = await Promise.all([
+        const [activitiesData, todayData, habitData] = await Promise.all([
           listActivities(),
           getTodayProgress(),
+          getHabitProgress(),
         ])
         if (!active) return
         setActivities(activitiesData)
         setToday(todayData)
+        setHabitProgress(habitData)
         setError('')
       } catch (err) {
         if (!active) return
@@ -264,6 +267,57 @@ export function DashboardPage() {
           <span className={`h-[10px] w-[10px] rounded-[2px] ${heatClass(4)} outline outline-1 outline-offset-[-1px] outline-black/5 dark:outline-white/5`} />
           <span className="px-1">More</span>
         </div>
+      </article>
+
+      <article className="rounded-lg border border-slate-200/60 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+        <div className="mb-5">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Habit Progress</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Lifetime done vs missed count for each habit.
+          </p>
+        </div>
+
+        {habitProgress.length === 0 ? (
+          <p className="text-sm text-slate-400 dark:text-slate-500">No habit data yet. Complete or miss a habit to see progress here.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500">
+                  <th className="pb-3 pr-4">Habit</th>
+                  <th className="pb-3 pr-4 text-right">Done</th>
+                  <th className="pb-3 pr-4 text-right">Missed</th>
+                  <th className="pb-3 pr-4 text-right">Total</th>
+                  <th className="pb-3 min-w-[120px]">Rate</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {habitProgress.map((h) => {
+                  const rate = h.total > 0 ? Math.round((h.done / h.total) * 100) : 0
+                  return (
+                    <tr key={h.habit_name} className="group">
+                      <td className="py-3 pr-4 font-medium text-slate-800 dark:text-slate-200">{h.habit_name}</td>
+                      <td className="py-3 pr-4 text-right text-emerald-600 dark:text-emerald-400">{h.done}</td>
+                      <td className="py-3 pr-4 text-right text-orange-500 dark:text-orange-400">{h.missed}</td>
+                      <td className="py-3 pr-4 text-right text-slate-500 dark:text-slate-400">{h.total}</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                            <div
+                              className="h-full rounded-full bg-emerald-500 dark:bg-emerald-400 transition-all"
+                              style={{ width: `${rate}%` }}
+                            />
+                          </div>
+                          <span className="w-9 text-right text-xs text-slate-500 dark:text-slate-400">{rate}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </article>
     </section>
   )
