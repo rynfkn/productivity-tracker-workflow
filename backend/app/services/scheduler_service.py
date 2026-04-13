@@ -7,7 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.config import settings
 from app.db.base import SessionLocal
-from app.repositories import reminder_schedule_repo
+from app.repositories import activity_repo, reminder_schedule_repo
 
 logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler(timezone=settings.SCHEDULER_TIMEZONE)
@@ -97,6 +97,19 @@ def check_and_trigger_activities() -> None:
         db.close()
 
 
+def mark_missed_habits() -> None:
+    db = SessionLocal()
+    try:
+        now = datetime.now(timezone.utc)
+        count = activity_repo.mark_overdue_habits_as_missed(db, now=now)
+        if count:
+            logger.info("Marked %d overdue habit(s) as missed", count)
+    except Exception as exc:
+        logger.exception("mark_missed_habits failed: %s", exc)
+    finally:
+        db.close()
+
+
 def start_scheduler() -> None:
     if not settings.SCHEDULER_ENABLED:
         return
@@ -105,6 +118,13 @@ def start_scheduler() -> None:
         "interval",
         seconds=settings.SCHEDULER_INTERVAL_SECONDS,
         id="check_due_reminders",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        mark_missed_habits,
+        "interval",
+        minutes=15,
+        id="mark_missed_habits",
         replace_existing=True,
     )
     scheduler.start()

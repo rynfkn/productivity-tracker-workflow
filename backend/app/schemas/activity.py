@@ -49,7 +49,33 @@ class ActivityResponse(BaseModel):
 
 
 class ActivityStatusUpdate(BaseModel):
-    status: str = Field(pattern="^(pending|done|failed|reschedule)$")
+    status: str = Field(pattern="^(pending|done|failed|reschedule|missed)$")
+
+
+class ActivityUpdate(BaseModel):
+    activity_name: str | None = None
+    start_at: datetime | None = None
+    deadline_at: datetime | None = None
+    reminder_offsets_minutes: list[int] | None = None
+
+    @field_validator("reminder_offsets_minutes")
+    @classmethod
+    def validate_offsets(cls, value: list[int] | None) -> list[int] | None:
+        if value is None:
+            return value
+        cleaned = sorted(set(value))
+        if not cleaned:
+            raise ValueError("reminder_offsets_minutes cannot be empty")
+        if any(v < 0 for v in cleaned):
+            raise ValueError("reminder_offsets_minutes must be >= 0")
+        return cleaned
+
+
+class HabitProgressItem(BaseModel):
+    habit_name: str
+    done: int
+    missed: int
+    total: int
 
 
 class ProgressBucket(BaseModel):
