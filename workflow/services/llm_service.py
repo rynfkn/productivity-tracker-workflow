@@ -37,13 +37,20 @@ def _load_prompt(name: str) -> str:
     return ""
 
 
-def _fallback_intent(text: str) -> dict[str, Any]:
+def _fallback_intent(text: str, activity_kind: str = "reminder") -> dict[str, Any]:
     t = (text or "").lower()
-    if any(k in t for k in ["done", "finished", "completed", "yes"]):
+    if any(k in t for k in ["done", "finished", "completed", "yes", "did"]):
         return {
             "intent": "done",
             "confidence": 0.8,
             "reason": "keyword_match",
+            "new_deadline": None,
+        }
+    if activity_kind == "habit":
+        return {
+            "intent": "missed",
+            "confidence": 0.6,
+            "reason": "default_fallback",
             "new_deadline": None,
         }
     if any(k in t for k in ["later", "postpone", "tomorrow", "reschedule", "delay"]):
@@ -61,10 +68,13 @@ def _fallback_intent(text: str) -> dict[str, Any]:
     }
 
 
-def classify_intent(user_text: str) -> dict[str, Any]:
+def classify_intent(user_text: str, activity_kind: str = "reminder") -> dict[str, Any]:
+    is_habit = activity_kind == "habit"
+    valid_intents = {"done", "missed"} if is_habit else {"done", "reschedule", "failed"}
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        return _fallback_intent(user_text)
+        return _fallback_intent(user_text, activity_kind)
 
     try:
         llm = ChatGoogleGenerativeAI(
@@ -73,25 +83,34 @@ def classify_intent(user_text: str) -> dict[str, Any]:
             temperature=0
         )
 
-        prompt_template = _load_prompt("intent_classification")
+        prompt_name = "habit_intent_classification" if is_habit else "intent_classification"
+        prompt_template = _load_prompt(prompt_name)
         if prompt_template:
             prompt = prompt_template.replace("{user_text}", user_text)
         else:
-            prompt = (
-                "Classify the user's response regarding their activity.\n"
-                "Intent options: done | reschedule | failed.\n"
-                "If reschedule, include new_deadline as ISO datetime string or null.\n"
-                "Reply with valid JSON only: "
-                '{"intent":"done|reschedule|failed","confidence":0.0,"reason":"...","new_deadline":null}\n'
-                f'User response: "{user_text}"'
-            )
+            if is_habit:
+                prompt = (
+                    "Classify if the user completed their habit.\n"
+                    "Intent options: done | missed.\n"
+                    "Reply with valid JSON only: "
+                    '{"intent":"done|missed","confidence":0.0,"reason":"...","new_deadline":null}\n'
+                    f'User response: "{user_text}"'
+                )
+            else:
+                prompt = (
+                    "Classify the user's response regarding their activity.\n"
+                    "Intent options: done | reschedule | failed.\n"
+                    "If reschedule, include new_deadline as ISO datetime string or null.\n"
+                    "Reply with valid JSON only: "
+                    '{"intent":"done|reschedule|failed","confidence":0.0,"reason":"...","new_deadline":null}\n'
+                    f'User response: "{user_text}"'
+                )
 
         resp = llm.invoke(prompt)
-        
-        # Depending on LangChain version, response could be string or AIMessage
+
         content = resp.content if hasattr(resp, "content") else str(resp)
         raw = content.strip()
-        
+
         # Clean up any potential markdown formatting (e.g., ```json ... ```)
         if raw.startswith("```"):
             lines = raw.split("\n")
@@ -102,8 +121,8 @@ def classify_intent(user_text: str) -> dict[str, Any]:
             raw = "\n".join(lines).strip()
 
         data = json.loads(raw)
-        if data.get("intent") not in {"done", "reschedule", "failed"}:
-            return _fallback_intent(user_text)
+        if data.get("intent") not in valid_intents:
+            return _fallback_intent(user_text, activity_kind)
         if "new_deadline" not in data:
             data["new_deadline"] = None
         if data.get("intent") == "reschedule" and not data.get("new_deadline"):
@@ -111,4 +130,4 @@ def classify_intent(user_text: str) -> dict[str, Any]:
         return data
     except Exception as e:
         print(f"Gemini LangChain Error: {e}")
-        return _fallback_intent(user_text)
+        return _fallback_intent(user_text, activity_kind)

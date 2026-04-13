@@ -10,10 +10,17 @@ def node_analyze_intent(state: ProductivityState) -> ProductivityState:
     if not user_response:
         user_response = interrupt("Waiting for user reply from Telegram webhook")
 
-    intent = classify_intent(user_response)
-    status = intent.get("intent", "failed")
-    if status not in {"done", "reschedule", "failed"}:
-        status = "failed"
+    activity_kind = state.get("activity_kind") or "reminder"
+    intent = classify_intent(user_response, activity_kind=activity_kind)
+
+    if activity_kind == "habit":
+        status = intent.get("intent", "missed")
+        if status not in {"done", "missed"}:
+            status = "missed"
+    else:
+        status = intent.get("intent", "failed")
+        if status not in {"done", "reschedule", "failed"}:
+            status = "failed"
 
     return {
         "user_response": user_response,

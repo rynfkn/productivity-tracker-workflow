@@ -28,13 +28,21 @@ def node_send_message(state: ProductivityState) -> ProductivityState:
         if not item:
             return {"error": f"activity not found: {activity_id}"}
 
-        msg = (
-            f"Activity reminder:\n"
-            f"- Name: {item.activity_name}\n"
-            f"- Type: {item.activity_kind}\n\n"
-            f"Has this activity been completed?\n"
-            f"Ref: {item.id}"
-        )
+        if item.activity_kind == "habit":
+            msg = (
+                f"Habit check-in:\n"
+                f"- Habit: {item.activity_name}\n\n"
+                f"Did you complete this habit today? Reply yes or no.\n"
+                f"Ref: {item.id}"
+            )
+        else:
+            msg = (
+                f"Activity reminder:\n"
+                f"- Name: {item.activity_name}\n"
+                f"- Type: {item.activity_kind}\n\n"
+                f"Has this activity been completed? You can reply done, reschedule, or failed.\n"
+                f"Ref: {item.id}"
+            )
 
         token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         if not token:
@@ -49,7 +57,7 @@ def node_send_message(state: ProductivityState) -> ProductivityState:
             return {"error": f"Telegram API error: {payload}", "bot_message": msg}
 
 
-        return {"bot_message": msg}
+        return {"bot_message": msg, "activity_kind": item.activity_kind}
     except Exception as e:
         return {"error": str(e)}
     finally:

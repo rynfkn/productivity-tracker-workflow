@@ -28,7 +28,7 @@ def node_update_activity(state: ProductivityState) -> ProductivityState:
     if not activity_id:
         return {"error": "activity_id is required"}
 
-    allowed_statuses = {"pending", "done", "reschedule", "failed"}
+    allowed_statuses = {"pending", "done", "reschedule", "failed", "missed"}
     new_status = state.get("status")
     if new_status not in allowed_statuses:
         return {"error": f"invalid status: {new_status}"}
@@ -67,6 +67,9 @@ def node_update_activity(state: ProductivityState) -> ProductivityState:
                 item,
                 now=datetime.now(timezone.utc),
             )
+        elif new_status == "missed":
+            item.status = "missed"
+            item.completed_at = None
         else:
             item.status = new_status
 
