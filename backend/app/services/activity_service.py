@@ -41,6 +41,10 @@ def delete_activity(db: Session, activity_id) -> bool:
     return activity_repo.delete_activity(db, activity_id)
 
 
+def list_completions(db: Session):
+    return activity_repo.list_completions(db)
+
+
 def get_progress_summary(db: Session, *, start: datetime, end: datetime) -> dict:
     return activity_repo.get_progress_summary(db, start=start, end=end)
 

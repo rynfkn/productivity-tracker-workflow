@@ -21,6 +21,7 @@ class Activity(Base):
     start_at = Column(DateTime(timezone=True), nullable=True)
     deadline_at = Column(DateTime(timezone=True), nullable=True)
     reminder_offsets_minutes = Column(JSONB, nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     logs = relationship(
         "ActivityLog", back_populates="activity", cascade="all, delete-orphan"

@@ -56,3 +56,8 @@ def get_progress(
 @router.get("/habits/progress", response_model=list[HabitProgressItem])
 def get_habit_progress(db: Session = Depends(get_db)):
     return activity_service.get_habit_progress(db)
+
+
+@router.get("/completions", response_model=list[ActivityResponse])
+def get_completions(db: Session = Depends(get_db)):
+    return activity_service.list_completions(db)

@@ -85,13 +85,28 @@ def delete_activity(db: Session, activity_id) -> bool:
     item = db.query(Activity).filter(Activity.id == activity_id).first()
     if not item:
         return False
-    db.delete(item)
+    item.deleted_at = datetime.now(timezone.utc)
     db.commit()
     return True
 
 
+def list_completions(db: Session) -> list[Activity]:
+    """All activities (including soft-deleted) that have a completed_at — used for heatmap."""
+    return (
+        db.query(Activity)
+        .filter(Activity.completed_at.isnot(None))
+        .order_by(Activity.completed_at.desc())
+        .all()
+    )
+
+
 def list_activities(db: Session) -> list[Activity]:
-    return db.query(Activity).order_by(Activity.created_at.desc()).all()
+    return (
+        db.query(Activity)
+        .filter(Activity.deleted_at.is_(None))
+        .order_by(Activity.created_at.desc())
+        .all()
+    )
 
 
 def create_activity(
