@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Use .dark class on <html> instead of prefers-color-scheme media query */
+@variant dark (&:where(.dark, .dark *));
+
 @layer base {
   html,
   body,
