@@ -13,3 +13,18 @@ class ProductivityState(TypedDict, total=False):
     reschedule_deadline: str
 
     error: str
+
+
+class CommandState(TypedDict, total=False):
+    chat_id: str
+    user_message: str
+
+    command_intent: str  # add_activity | delete_activity | list_activities | unknown
+    parsed_activity_name: str
+    parsed_activity_kind: str
+    parsed_deadline_at: str
+    parsed_start_at: str
+    parsed_reminder_offsets_minutes: list[int]
+
+    result_message: str
+    error: str

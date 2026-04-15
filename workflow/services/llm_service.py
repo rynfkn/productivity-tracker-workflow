@@ -68,6 +68,81 @@ def _fallback_intent(text: str, activity_kind: str = "reminder") -> dict[str, An
     }
 
 
+def _fallback_parse_command(user_message: str) -> dict[str, Any]:
+    t = (user_message or "").lower()
+    if any(k in t for k in ["add", "create", "new", "tambah", "buat"]):
+        return {
+            "intent": "add_activity",
+            "activity_name": None,
+            "activity_kind": "reminder",
+            "deadline_at": None,
+            "start_at": None,
+            "reminder_offsets_minutes": [30],
+            "reason": "keyword_match",
+        }
+    if any(k in t for k in ["delete", "remove", "hapus", "hilangkan"]):
+        return {
+            "intent": "delete_activity",
+            "activity_name": None,
+            "reason": "keyword_match",
+        }
+    if any(k in t for k in ["list", "show", "daftar", "tampilkan", "lihat"]):
+        return {"intent": "list_activities", "reason": "keyword_match"}
+    return {"intent": "unknown", "reason": "no_match"}
+
+
+def parse_command(user_message: str, current_datetime: str, timezone: str) -> dict[str, Any]:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return _fallback_parse_command(user_message)
+
+    try:
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=api_key,
+            temperature=0,
+        )
+
+        prompt_template = _load_prompt("command_classification")
+        if prompt_template:
+            prompt = (
+                prompt_template
+                .replace("{user_message}", user_message)
+                .replace("{current_datetime}", current_datetime)
+                .replace("{timezone}", timezone)
+            )
+        else:
+            prompt = (
+                f"Parse the user's productivity command.\n"
+                f"Current datetime: {current_datetime} ({timezone}).\n"
+                'Return JSON: {"intent": "add_activity|delete_activity|list_activities|unknown", '
+                '"activity_name": null, "activity_kind": "reminder", "deadline_at": null, '
+                '"start_at": null, "reminder_offsets_minutes": [30], "reason": "..."}\n'
+                f'User message: "{user_message}"'
+            )
+
+        resp = llm.invoke(prompt)
+        content = resp.content if hasattr(resp, "content") else str(resp)
+        raw = content.strip()
+
+        if raw.startswith("```"):
+            lines = raw.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            raw = "\n".join(lines).strip()
+
+        data = json.loads(raw)
+        valid_intents = {"add_activity", "delete_activity", "list_activities", "unknown"}
+        if data.get("intent") not in valid_intents:
+            data["intent"] = "unknown"
+        return data
+    except Exception as e:
+        print(f"Gemini parse_command error: {e}")
+        return _fallback_parse_command(user_message)
+
+
 def classify_intent(user_text: str, activity_kind: str = "reminder") -> dict[str, Any]:
     is_habit = activity_kind == "habit"
     valid_intents = {"done", "missed"} if is_habit else {"done", "reschedule", "failed"}
