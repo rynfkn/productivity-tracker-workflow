@@ -30,13 +30,28 @@ async def telegram_webhook(request: Request):
         return {"ok": True, "message": "ignored"}
 
     match = ACTIVITY_REF_RE.search(reply_to_text) or ACTIVITY_REF_RE.search(user_text)
+
     if not match:
+        # No activity ref — treat as a direct command (add / delete / list)
         logger.info(
-            "telegram_webhook ignored chat_id=%s message_id=%s reason=no_activity_ref",
+            "telegram_webhook command chat_id=%s message_id=%s text=%r",
             chat_id,
             message_id,
+            user_text,
         )
-        return {"ok": True, "message": "ignored: no activity ref"}
+        from workflow.command_graph import command_app
+
+        result = command_app.invoke(
+            {"chat_id": str(chat_id), "user_message": user_text}
+        )
+        if isinstance(result, dict):
+            logger.info(
+                "telegram_webhook command_result chat_id=%s intent=%s result_message=%r",
+                chat_id,
+                result.get("command_intent"),
+                result.get("result_message"),
+            )
+        return {"ok": True}
 
     activity_id = match.group(1)
 
