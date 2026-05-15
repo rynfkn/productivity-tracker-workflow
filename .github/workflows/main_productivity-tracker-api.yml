@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  AZURE_WEBAPP_NAME: productivity-tracker-api
+  AZURE_WEBAPP_NAME: productivity-tracker
   PYTHON_VERSION: "3.12"
   BACKEND_PATH: backend
 
