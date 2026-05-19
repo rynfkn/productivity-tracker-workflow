@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ def get_all_activities(db: Session):
 
 
 def create_new_activity(db: Session, payload: ActivityCreate):
+    now = datetime.now(timezone.utc)
     activity = activity_repo.create_activity(
         db,
         activity_name=payload.activity_name,
@@ -22,7 +23,7 @@ def create_new_activity(db: Session, payload: ActivityCreate):
         deadline_at=payload.deadline_at,
         reminder_offsets_minutes=payload.reminder_offsets_minutes,
     )
-    reminder_schedule_repo.create_schedule_for_activity(db, activity)
+    reminder_schedule_repo.create_schedule_for_activity(db, activity, min_remind_at=now)
     return activity
 
 

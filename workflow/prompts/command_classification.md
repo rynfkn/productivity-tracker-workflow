@@ -16,6 +16,12 @@ For **add_activity**, extract:
 - `start_at`: ISO-8601 datetime string in UTC (only for habits) — when the habit period starts; if not specified set to deadline_at
 - `reminder_offsets_minutes`: list of integers (minutes before deadline to send a reminder), default [30]
 
+Timezone rules:
+- Interpret user-provided times without an explicit timezone as local time in `{timezone}` first.
+- After interpreting the local datetime, convert it to UTC for `deadline_at` and `start_at`.
+- Do not treat a bare local time such as "16.05", "16:05", or "4:05pm" as UTC.
+- If the user gives only a time and that local time has already passed today, choose the next calendar day in `{timezone}`.
+
 For **delete_activity**, extract:
 - `activity_name`: string — the name or partial name of the activity to search for and delete
 

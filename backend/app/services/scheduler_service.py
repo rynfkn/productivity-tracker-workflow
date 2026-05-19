@@ -39,7 +39,12 @@ def check_and_trigger_activities() -> None:
     try:
         now = datetime.now(timezone.utc)
         due = reminder_schedule_repo.get_due_pending_reminders(db, now=now)
-        logger.info("Scheduler tick now_utc=%s due_reminder_count=%d", now.isoformat(), len(due))
+        logger.info(
+            "Scheduler tick now_utc=%s now_local=%s due_reminder_count=%d",
+            now.isoformat(),
+            now.astimezone(scheduler.timezone).isoformat(),
+            len(due),
+        )
         for schedule in due:
             chat_id = settings.USER_CHAT_ID
             if not chat_id:
