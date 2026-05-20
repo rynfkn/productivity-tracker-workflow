@@ -15,6 +15,8 @@ def node_send_message(state: ProductivityState) -> ProductivityState:
 
     chat_id = state.get("chat_id")
     activity_id = state.get("activity_id")
+    schedule_id = state.get("schedule_id")
+    reminder_kind = state.get("reminder_kind") or "reminder"
     if not chat_id or not activity_id:
         return {"error": "chat_id/activity_id is required"}
 
@@ -31,7 +33,8 @@ def node_send_message(state: ProductivityState) -> ProductivityState:
         if item.activity_kind == "habit":
             msg = (
                 f"Habit check-in:\n"
-                f"- Habit: {item.activity_name}\n\n"
+                f"- Habit: {item.activity_name}\n"
+                f"- Reminder: {reminder_kind}\n\n"
                 f"Did you complete this habit today? Reply yes or no.\n"
                 f"Ref: {item.id}"
             )
@@ -39,10 +42,14 @@ def node_send_message(state: ProductivityState) -> ProductivityState:
             msg = (
                 f"Activity reminder:\n"
                 f"- Name: {item.activity_name}\n"
-                f"- Type: {item.activity_kind}\n\n"
+                f"- Type: {item.activity_kind}\n"
+                f"- Reminder: {reminder_kind}\n\n"
                 f"Has this activity been completed? You can reply done, reschedule, or failed.\n"
                 f"Ref: {item.id}"
             )
+
+        if schedule_id:
+            msg = f"{msg}\nSchedule: {schedule_id}"
 
         token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         if not token:

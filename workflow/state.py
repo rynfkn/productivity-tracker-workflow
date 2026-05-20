@@ -3,6 +3,8 @@ from typing import Any, TypedDict
 class ProductivityState(TypedDict, total=False):
     activity_id: str
     chat_id: str
+    schedule_id: str
+    reminder_kind: str
     activity_kind: str
 
     bot_message: str

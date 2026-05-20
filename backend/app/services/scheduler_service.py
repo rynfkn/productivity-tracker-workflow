@@ -13,7 +13,13 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler(timezone=settings.SCHEDULER_TIMEZONE)
 
 
-def _invoke_workflow(activity_id: str, chat_id: str) -> None:
+def _invoke_workflow(
+    *,
+    activity_id: str,
+    chat_id: str,
+    schedule_id: str,
+    reminder_kind: str,
+) -> None:
     # Add the project root to sys.path so we can import workflow
     project_root = str(Path(__file__).resolve().parent.parent.parent.parent)
     if project_root not in sys.path:
@@ -22,15 +28,29 @@ def _invoke_workflow(activity_id: str, chat_id: str) -> None:
     # lazy import to avoid circular/init overhead
     from workflow.graph import app as workflow_app
 
-    logger.info("Invoking workflow activity_id=%s chat_id=%s", activity_id, chat_id)
+    thread_id = f"{chat_id}:{activity_id}:{schedule_id}"
+    logger.info(
+        "Invoking workflow activity_id=%s schedule_id=%s reminder_kind=%s chat_id=%s",
+        activity_id,
+        schedule_id,
+        reminder_kind,
+        chat_id,
+    )
     result = workflow_app.invoke(
         {
             "activity_id": str(activity_id),
             "chat_id": str(chat_id),
+            "schedule_id": str(schedule_id),
+            "reminder_kind": reminder_kind,
         },
-        config={"configurable": {"thread_id": f"{chat_id}:{activity_id}"}},
+        config={"configurable": {"thread_id": thread_id}},
     )
-    logger.info("Workflow finished activity_id=%s result=%s", activity_id, result)
+    logger.info(
+        "Workflow finished activity_id=%s schedule_id=%s result=%s",
+        activity_id,
+        schedule_id,
+        result,
+    )
 
 
 
@@ -82,7 +102,12 @@ def check_and_trigger_activities() -> None:
                     schedule.reminder_kind,
                     schedule.remind_at,
                 )
-                _invoke_workflow(activity_id=str(schedule.activity_id), chat_id=chat_id)
+                _invoke_workflow(
+                    activity_id=str(schedule.activity_id),
+                    chat_id=chat_id,
+                    schedule_id=str(schedule.id),
+                    reminder_kind=schedule.reminder_kind,
+                )
                 reminder_schedule_repo.mark_sent(db, schedule.id)
             except Exception as exc:
                 logger.exception(

@@ -7,6 +7,7 @@ router = APIRouter(prefix="/webhook", tags=["webhook"])
 
 logger = logging.getLogger(__name__)
 ACTIVITY_REF_RE = re.compile(r"Ref:\s*([0-9a-fA-F-]{36})")
+SCHEDULE_REF_RE = re.compile(r"Schedule:\s*([0-9a-fA-F-]{36})")
 
 
 @router.post("/telegram")
@@ -51,13 +52,17 @@ async def telegram_webhook(request: Request):
         return {"ok": True}
 
     activity_id = match.group(1)
+    schedule_match = SCHEDULE_REF_RE.search(reply_to_text) or SCHEDULE_REF_RE.search(user_text)
+    schedule_id = schedule_match.group(1) if schedule_match else None
+    thread_id = f"{chat_id}:{activity_id}:{schedule_id}" if schedule_id else f"{chat_id}:{activity_id}"
 
     logger.info(
-        "telegram_webhook received chat_id=%s message_id=%s reply_to_message_id=%s activity_id=%s text=%r",
+        "telegram_webhook received chat_id=%s message_id=%s reply_to_message_id=%s activity_id=%s schedule_id=%s text=%r",
         chat_id,
         message_id,
         reply_to_message_id,
         activity_id,
+        schedule_id,
         user_text,
     )
 
@@ -70,7 +75,7 @@ async def telegram_webhook(request: Request):
             "chat_id": str(chat_id),
             "user_response": user_text,
         },
-        config={"configurable": {"thread_id": f"{chat_id}:{activity_id}"}},
+        config={"configurable": {"thread_id": thread_id}},
     )
 
     if isinstance(result, dict):
