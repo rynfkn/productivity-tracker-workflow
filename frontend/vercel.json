@@ -1,0 +1,20 @@
+{
+  "redirects": [
+    {
+      "source": "/activies",
+      "destination": "/activities",
+      "permanent": true
+    },
+    {
+      "source": "/activies/:path*",
+      "destination": "/activities/:path*",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!api/.*).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

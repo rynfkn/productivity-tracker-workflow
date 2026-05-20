@@ -6,6 +6,7 @@ type AppRoute = '/dashboard' | '/activities'
 type Theme = 'light' | 'dark'
 
 function getRouteFromPath(pathname: string): AppRoute {
+  if (pathname.startsWith('/activies')) return '/activities'
   if (pathname.startsWith('/activities')) return '/activities'
   return '/dashboard'
 }
@@ -113,4 +114,3 @@ function App() {
 }
 
 export default App
-
