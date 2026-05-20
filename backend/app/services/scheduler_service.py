@@ -118,6 +118,17 @@ def mark_missed_habits() -> None:
 def start_scheduler() -> None:
     if not settings.SCHEDULER_ENABLED:
         return
+    db = SessionLocal()
+    try:
+        now = datetime.now(timezone.utc)
+        count = activity_repo.reactivate_terminal_habits(db, now=now)
+        if count:
+            logger.info("Reactivated %d recurring habit(s)", count)
+    except Exception as exc:
+        logger.exception("reactivate_terminal_habits failed: %s", exc)
+    finally:
+        db.close()
+
     scheduler.add_job(
         check_and_trigger_activities,
         "interval",

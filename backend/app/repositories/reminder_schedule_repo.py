@@ -78,6 +78,27 @@ def replace_future_pending_schedule_for_activity(
     return create_schedule_for_activity(db, activity, min_remind_at=now)
 
 
+def mark_past_pending_schedule_for_activity(
+    db: Session,
+    activity: Activity,
+    *,
+    now: datetime,
+    error_message: str,
+) -> int:
+    rows = (
+        db.query(ReminderSchedule)
+        .filter(ReminderSchedule.activity_id == activity.id)
+        .filter(ReminderSchedule.status == "pending")
+        .filter(ReminderSchedule.remind_at < now)
+        .all()
+    )
+    for row in rows:
+        row.status = "failed"
+        row.error_message = error_message[:1000]
+    db.commit()
+    return len(rows)
+
+
 def get_due_pending_reminders(db: Session, now: datetime) -> list[ReminderSchedule]:
     return (
         db.query(ReminderSchedule)

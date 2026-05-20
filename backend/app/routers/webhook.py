@@ -2,15 +2,12 @@ import logging
 import re
 
 from fastapi import APIRouter, Request
-from sqlalchemy.orm import Session
-
-from app.db.base import SessionLocal
-from app.repositories import activity_log_repo
 
 router = APIRouter(prefix="/webhook", tags=["webhook"])
 
 logger = logging.getLogger(__name__)
 ACTIVITY_REF_RE = re.compile(r"Ref:\s*([0-9a-fA-F-]{36})")
+
 
 @router.post("/telegram")
 async def telegram_webhook(request: Request):
@@ -77,19 +74,10 @@ async def telegram_webhook(request: Request):
     )
 
     if isinstance(result, dict):
-        logger.info("telegram_webhook workflow_result activity_id=%s result=%s", activity_id, result)
-
-    # Optional best-effort log
-    if activity_id and isinstance(result, dict):
-        db: Session = SessionLocal()
-        try:
-            activity_log_repo.create_log(
-                db,
-                activity_id=activity_id,
-                user_message=user_text,
-                intent_nlp=result.get("intent_nlp"),
-            )
-        finally:
-            db.close()
+        logger.info(
+            "telegram_webhook workflow_result activity_id=%s result=%s",
+            activity_id,
+            result,
+        )
 
     return {"ok": True}

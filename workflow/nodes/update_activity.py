@@ -41,15 +41,22 @@ def node_update_activity(state: ProductivityState) -> ProductivityState:
 
     db = SessionLocal()
     try:
-        from backend.app.repositories import reminder_schedule_repo
+        from backend.app.repositories import activity_repo, reminder_schedule_repo
 
         item = db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
         if not item:
             return {"error": f"activity not found: {activity_id}"}
 
+        now = datetime.now(timezone.utc)
+
         if new_status == "done":
-            item.status = "done"
-            item.completed_at = datetime.now(timezone.utc)
+            if item.activity_kind == "habit":
+                item.status = "pending"
+                item.completed_at = now
+                activity_repo.advance_habit_to_next_occurrence(item, now)
+            else:
+                item.status = "done"
+                item.completed_at = now
         elif new_status == "reschedule":
             requested_deadline = _parse_iso_datetime(
                 state.get("reschedule_deadline")
@@ -65,10 +72,15 @@ def node_update_activity(state: ProductivityState) -> ProductivityState:
             reminder_schedule_repo.replace_future_pending_schedule_for_activity(
                 db,
                 item,
-                now=datetime.now(timezone.utc),
+                now=now,
             )
         elif new_status == "missed":
-            item.status = "missed"
+            if item.activity_kind == "habit":
+                item.status = "pending"
+                item.completed_at = None
+                activity_repo.advance_habit_to_next_occurrence(item, now)
+            else:
+                item.status = "missed"
             item.completed_at = None
         else:
             item.status = new_status
@@ -82,6 +94,14 @@ def node_update_activity(state: ProductivityState) -> ProductivityState:
         db.add(log)
         db.commit()
         db.refresh(item)
+
+        if item.activity_kind == "habit" and new_status in {"done", "missed"}:
+            reminder_schedule_repo.replace_future_pending_schedule_for_activity(
+                db,
+                item,
+                now=now,
+            )
+            db.refresh(item)
 
         return {"status": item.status, "activity_id": str(item.id)}
     except Exception as e:
