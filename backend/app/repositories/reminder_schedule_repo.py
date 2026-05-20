@@ -30,7 +30,8 @@ def create_schedule_for_activity(
     schedule_points = _build_schedule_points(activity)
     if min_remind_at is not None:
         schedule_points = [
-            point for point in schedule_points if point[0] >= min_remind_at
+            (max(remind_at, min_remind_at), reminder_kind)
+            for remind_at, reminder_kind in schedule_points
         ]
     if not schedule_points:
         return []
@@ -54,6 +55,7 @@ def create_schedule_for_activity(
         )
         db.add(row)
         created.append(row)
+        existing_keys.add((remind_at, reminder_kind))
 
     db.commit()
     for row in created:
@@ -76,6 +78,34 @@ def replace_future_pending_schedule_for_activity(
     )
     db.commit()
     return create_schedule_for_activity(db, activity, min_remind_at=now)
+
+
+def create_missing_schedule_for_pending_activities(
+    db: Session,
+    *,
+    now: datetime,
+) -> int:
+    activities = (
+        db.query(Activity)
+        .filter(Activity.status == "pending")
+        .filter(Activity.deleted_at.is_(None))
+        .all()
+    )
+
+    repaired = 0
+    for activity in activities:
+        existing_count = (
+            db.query(ReminderSchedule)
+            .filter(ReminderSchedule.activity_id == activity.id)
+            .count()
+        )
+        if existing_count:
+            continue
+        created = create_schedule_for_activity(db, activity, min_remind_at=now)
+        if created:
+            repaired += 1
+
+    return repaired
 
 
 def mark_past_pending_schedule_for_activity(

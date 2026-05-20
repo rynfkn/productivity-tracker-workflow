@@ -149,8 +149,13 @@ def start_scheduler() -> None:
         count = activity_repo.reactivate_terminal_habits(db, now=now)
         if count:
             logger.info("Reactivated %d recurring habit(s)", count)
+        repaired_count = reminder_schedule_repo.create_missing_schedule_for_pending_activities(
+            db, now=now
+        )
+        if repaired_count:
+            logger.info("Repaired missing schedules for %d pending activity(s)", repaired_count)
     except Exception as exc:
-        logger.exception("reactivate_terminal_habits failed: %s", exc)
+        logger.exception("scheduler startup repair failed: %s", exc)
     finally:
         db.close()
 
