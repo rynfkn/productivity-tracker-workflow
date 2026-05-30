@@ -38,6 +38,10 @@ def update_existing_activity(db: Session, activity_id, payload: ActivityUpdate):
     )
 
 
+def update_activity_status(db: Session, activity_id, status: str):
+    return activity_repo.update_status(db, activity_id, status)
+
+
 def delete_activity(db: Session, activity_id) -> bool:
     return activity_repo.delete_activity(db, activity_id)
 

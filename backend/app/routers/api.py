@@ -5,7 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
-from app.schemas.activity import ActivityCreate, ActivityResponse, ActivityUpdate, HabitProgressItem, ProgressSummaryResponse
+from app.schemas.activity import (
+    ActivityCreate,
+    ActivityResponse,
+    ActivityStatusUpdate,
+    ActivityUpdate,
+    HabitProgressItem,
+    ProgressSummaryResponse,
+)
 from app.services import activity_service
 
 router = APIRouter(prefix="/api", tags=["activities"])
@@ -24,6 +31,18 @@ def create_activity(payload: ActivityCreate, db: Session = Depends(get_db)):
 @router.patch("/activities/{activity_id}", response_model=ActivityResponse)
 def update_activity(activity_id: UUID, payload: ActivityUpdate, db: Session = Depends(get_db)):
     item = activity_service.update_existing_activity(db, activity_id, payload)
+    if not item:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    return item
+
+
+@router.patch("/activities/{activity_id}/status", response_model=ActivityResponse)
+def update_activity_status(
+    activity_id: UUID,
+    payload: ActivityStatusUpdate,
+    db: Session = Depends(get_db),
+):
+    item = activity_service.update_activity_status(db, activity_id, payload.status)
     if not item:
         raise HTTPException(status_code=404, detail="Activity not found")
     return item
