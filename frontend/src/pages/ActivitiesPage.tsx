@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import DatePicker from 'react-datepicker'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import 'react-datepicker/dist/react-datepicker.css'
 import { createActivity, deleteActivity, listActivities, updateActivity } from '../api'
 import type { Activity, ActivityCreatePayload, ActivityKind, ActivityUpdatePayload } from '../types'
@@ -48,6 +49,19 @@ function formatDateTime(value: string | null) {
   return new Date(value).toLocaleString()
 }
 
+function isDone(item: Activity): boolean {
+  return item.status === 'done' || Boolean(item.completed_at)
+}
+
+function isIncomplete(item: Activity): boolean {
+  return !isDone(item)
+}
+
+function isPastDue(item: Activity, now: Date): boolean {
+  if (!item.deadline_at || !isIncomplete(item)) return false
+  return new Date(item.deadline_at).getTime() < now.getTime()
+}
+
 function toIso(date: Date): string {
   return date.toISOString()
 }
@@ -85,9 +99,10 @@ interface ActivityCardProps {
   item: Activity
   onEdit: (item: Activity) => void
   onDelete: (id: string) => Promise<void>
+  pastDue?: boolean
 }
 
-function ActivityCard({ item, onEdit, onDelete }: ActivityCardProps) {
+function ActivityCard({ item, onEdit, onDelete, pastDue = false }: ActivityCardProps) {
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -99,7 +114,13 @@ function ActivityCard({ item, onEdit, onDelete }: ActivityCardProps) {
   }
 
   return (
-    <article className="rounded-lg border border-slate-200/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900/50">
+    <article
+      className={`rounded-lg border bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-slate-900/50 ${
+        pastDue
+          ? 'border-rose-200 ring-1 ring-rose-100 dark:border-rose-900/80 dark:ring-rose-950'
+          : 'border-slate-200/60 dark:border-slate-800'
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-wrap gap-2">
           <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${kindChipClass(item.activity_kind)}`}>
@@ -108,6 +129,11 @@ function ActivityCard({ item, onEdit, onDelete }: ActivityCardProps) {
           <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusChipClass(item.status)}`}>
             {item.status}
           </span>
+          {pastDue && (
+            <span className="rounded-full border border-rose-200 bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
+              past due
+            </span>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {confirming ? (
@@ -166,19 +192,33 @@ interface SectionProps {
   count: number
   accentClass: string
   children: React.ReactNode
+  collapsed?: boolean
+  onToggle?: () => void
 }
 
-function Section({ title, count, accentClass, children }: SectionProps) {
+function Section({ title, count, accentClass, children, collapsed = false, onToggle }: SectionProps) {
   return (
     <div className="grid gap-3">
       <div className="flex items-center gap-3">
-        <span className={`text-sm font-semibold tracking-wide ${accentClass}`}>{title}</span>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-sm font-semibold tracking-wide ${accentClass}`}>{title}</span>
+          {onToggle && (
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-label={collapsed ? `Show ${title}` : `Hide ${title}`}
+              className="grid h-6 w-6 place-items-center rounded-md text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            >
+              {collapsed ? <ChevronDown aria-hidden="true" size={16} /> : <ChevronUp aria-hidden="true" size={16} />}
+            </button>
+          )}
+        </div>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
           {count}
         </span>
         <div className="h-px flex-1 bg-slate-200/80 dark:bg-slate-800" />
       </div>
-      {children}
+      {!collapsed && children}
     </div>
   )
 }
@@ -187,13 +227,41 @@ export function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [now, setNow] = useState(() => new Date())
+  const [hidePastDueReminders, setHidePastDueReminders] = useState(false)
+  const [hideDoneReminders, setHideDoneReminders] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<FormState>(() => createInitialForm())
 
-  const habits = useMemo(() => activities.filter((a) => a.activity_kind === 'habit'), [activities])
-  const reminders = useMemo(() => activities.filter((a) => a.activity_kind === 'reminder'), [activities])
+  const { habits, pastDueHabits, reminders, pastDueReminders, doneReminders } = useMemo(() => {
+    const activeHabits: Activity[] = []
+    const overdueHabits: Activity[] = []
+    const activeReminders: Activity[] = []
+    const overdueReminders: Activity[] = []
+    const completedReminders: Activity[] = []
+
+    for (const activity of activities) {
+      const overdue = isPastDue(activity, now)
+      if (activity.activity_kind === 'habit') {
+        if (overdue) overdueHabits.push(activity)
+        else activeHabits.push(activity)
+      } else {
+        if (isDone(activity)) completedReminders.push(activity)
+        else if (overdue) overdueReminders.push(activity)
+        else activeReminders.push(activity)
+      }
+    }
+
+    return {
+      habits: activeHabits,
+      pastDueHabits: overdueHabits,
+      reminders: activeReminders,
+      pastDueReminders: overdueReminders,
+      doneReminders: completedReminders,
+    }
+  }, [activities, now])
 
   async function refresh() {
     try {
@@ -210,6 +278,14 @@ export function ActivitiesPage() {
 
   useEffect(() => {
     void refresh()
+  }, [])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date())
+    }, 60000)
+
+    return () => window.clearInterval(intervalId)
   }, [])
 
   function openCreate() {
@@ -287,7 +363,7 @@ export function ActivitiesPage() {
         <div>
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Activities & Habits</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {habits.length} habit{habits.length !== 1 ? 's' : ''} · {reminders.length} reminder{reminders.length !== 1 ? 's' : ''}
+            {habits.length + pastDueHabits.length} habit{habits.length + pastDueHabits.length !== 1 ? 's' : ''} · {reminders.length + pastDueReminders.length + doneReminders.length} reminder{reminders.length + pastDueReminders.length + doneReminders.length !== 1 ? 's' : ''} · {pastDueHabits.length + pastDueReminders.length} past due
           </p>
         </div>
         <button
@@ -311,9 +387,9 @@ export function ActivitiesPage() {
       ) : (
         <div className="grid gap-8">
           {/* ── Habits ── */}
-          <Section title="Habits" count={habits.length} accentClass="text-violet-600 dark:text-violet-400">
+          <Section title="Upcoming Habits" count={habits.length} accentClass="text-violet-600 dark:text-violet-400">
             {habits.length === 0 ? (
-              <p className="text-sm text-slate-400 dark:text-slate-500">No habits yet.</p>
+              <p className="text-sm text-slate-400 dark:text-slate-500">No upcoming habits.</p>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {habits.map((item) => (
@@ -323,13 +399,61 @@ export function ActivitiesPage() {
             )}
           </Section>
 
+          <Section title="Past Due Habits" count={pastDueHabits.length} accentClass="text-rose-600 dark:text-rose-400">
+            {pastDueHabits.length === 0 ? (
+              <p className="text-sm text-slate-400 dark:text-slate-500">No habits are past their time span.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {pastDueHabits.map((item) => (
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} pastDue />
+                ))}
+              </div>
+            )}
+          </Section>
+
           {/* ── Reminders ── */}
-          <Section title="Reminders" count={reminders.length} accentClass="text-blue-600 dark:text-blue-400">
+          <Section title="Upcoming Reminders" count={reminders.length} accentClass="text-blue-600 dark:text-blue-400">
             {reminders.length === 0 ? (
-              <p className="text-sm text-slate-400 dark:text-slate-500">No reminders yet.</p>
+              <p className="text-sm text-slate-400 dark:text-slate-500">No upcoming reminders.</p>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {reminders.map((item) => (
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} />
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <Section
+            title="Past Due Reminders"
+            count={pastDueReminders.length}
+            accentClass="text-rose-600 dark:text-rose-400"
+            collapsed={hidePastDueReminders}
+            onToggle={() => setHidePastDueReminders((value) => !value)}
+          >
+            {pastDueReminders.length === 0 ? (
+              <p className="text-sm text-slate-400 dark:text-slate-500">No reminders are past their deadline.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {pastDueReminders.map((item) => (
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} pastDue />
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <Section
+            title="Done Reminders"
+            count={doneReminders.length}
+            accentClass="text-emerald-600 dark:text-emerald-400"
+            collapsed={hideDoneReminders}
+            onToggle={() => setHideDoneReminders((value) => !value)}
+          >
+            {doneReminders.length === 0 ? (
+              <p className="text-sm text-slate-400 dark:text-slate-500">No completed reminders.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {doneReminders.map((item) => (
                   <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} />
                 ))}
               </div>
