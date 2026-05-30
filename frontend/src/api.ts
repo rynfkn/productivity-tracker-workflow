@@ -1,4 +1,4 @@
-import type { Activity, ActivityCreatePayload, ActivityUpdatePayload, HabitProgress, ProgressSummary } from './types'
+import type { Activity, ActivityCreatePayload, ActivityStatusPayload, ActivityUpdatePayload, HabitProgress, ProgressSummary } from './types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL
 
@@ -47,6 +47,13 @@ export function createActivity(payload: ActivityCreatePayload) {
 
 export function updateActivity(id: string, payload: ActivityUpdatePayload) {
   return request<Activity>(`/api/activities/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateActivityStatus(id: string, payload: ActivityStatusPayload) {
+  return request<Activity>(`/api/activities/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   })

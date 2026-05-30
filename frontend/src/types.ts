@@ -42,6 +42,10 @@ export interface ActivityUpdatePayload {
   reminder_offsets_minutes?: number[]
 }
 
+export interface ActivityStatusPayload {
+  status: 'pending' | 'done' | 'failed' | 'reschedule' | 'missed'
+}
+
 export interface HabitProgress {
   habit_name: string
   done: number

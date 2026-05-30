@@ -1,8 +1,8 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import DatePicker from 'react-datepicker'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import 'react-datepicker/dist/react-datepicker.css'
-import { createActivity, deleteActivity, listActivities, updateActivity } from '../api'
+import { createActivity, deleteActivity, listActivities, updateActivity, updateActivityStatus } from '../api'
 import type { Activity, ActivityCreatePayload, ActivityKind, ActivityUpdatePayload } from '../types'
 
 interface FormState {
@@ -99,18 +99,29 @@ interface ActivityCardProps {
   item: Activity
   onEdit: (item: Activity) => void
   onDelete: (id: string) => Promise<void>
+  onDone: (id: string) => Promise<void>
   pastDue?: boolean
 }
 
-function ActivityCard({ item, onEdit, onDelete, pastDue = false }: ActivityCardProps) {
+function ActivityCard({ item, onEdit, onDelete, onDone, pastDue = false }: ActivityCardProps) {
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [markingDone, setMarkingDone] = useState(false)
 
   async function handleDelete() {
     setDeleting(true)
     await onDelete(item.id)
     setDeleting(false)
     setConfirming(false)
+  }
+
+  async function handleDone() {
+    setMarkingDone(true)
+    try {
+      await onDone(item.id)
+    } finally {
+      setMarkingDone(false)
+    }
   }
 
   return (
@@ -156,6 +167,16 @@ function ActivityCard({ item, onEdit, onDelete, pastDue = false }: ActivityCardP
             </>
           ) : (
             <>
+              {!isDone(item) && (
+                <button
+                  onClick={handleDone}
+                  disabled={markingDone}
+                  className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+                >
+                  <Check aria-hidden="true" size={13} />
+                  {markingDone ? '...' : 'Done'}
+                </button>
+              )}
               <button
                 onClick={() => onEdit(item)}
                 className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -311,6 +332,17 @@ export function ActivitiesPage() {
     }
   }
 
+  async function handleDone(id: string) {
+    try {
+      const updated = await updateActivityStatus(id, { status: 'done' })
+      setActivities((prev) => prev.map((item) => (item.id === id ? updated : item)))
+      setError('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to mark activity done')
+      throw err
+    }
+  }
+
   function closeModal() {
     setModalOpen(false)
     setEditingActivity(null)
@@ -393,7 +425,7 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {habits.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} />
                 ))}
               </div>
             )}
@@ -405,7 +437,7 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {pastDueHabits.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} pastDue />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} pastDue />
                 ))}
               </div>
             )}
@@ -418,7 +450,7 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {reminders.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} />
                 ))}
               </div>
             )}
@@ -436,7 +468,7 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {pastDueReminders.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} pastDue />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} pastDue />
                 ))}
               </div>
             )}
@@ -454,7 +486,7 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {doneReminders.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} />
                 ))}
               </div>
             )}
