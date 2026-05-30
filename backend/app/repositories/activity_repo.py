@@ -350,6 +350,14 @@ def update_status(db: Session, activity_id, status: str) -> Activity | None:
         item.completed_at = None
     db.commit()
     db.refresh(item)
+
+    if status == "pending":
+        from app.repositories import reminder_schedule_repo
+
+        reminder_schedule_repo.replace_future_pending_schedule_for_activity(
+            db, item, now=now
+        )
+
     return item
 
 
