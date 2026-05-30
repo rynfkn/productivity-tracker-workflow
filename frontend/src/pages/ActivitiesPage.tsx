@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import DatePicker from 'react-datepicker'
-import { Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import 'react-datepicker/dist/react-datepicker.css'
 import { createActivity, deleteActivity, listActivities, updateActivity, updateActivityStatus } from '../api'
 import type { Activity, ActivityCreatePayload, ActivityKind, ActivityUpdatePayload } from '../types'
@@ -100,13 +100,15 @@ interface ActivityCardProps {
   onEdit: (item: Activity) => void
   onDelete: (id: string) => Promise<void>
   onDone: (id: string) => Promise<void>
+  onUndoDone: (id: string) => Promise<void>
   pastDue?: boolean
 }
 
-function ActivityCard({ item, onEdit, onDelete, onDone, pastDue = false }: ActivityCardProps) {
+function ActivityCard({ item, onEdit, onDelete, onDone, onUndoDone, pastDue = false }: ActivityCardProps) {
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [markingDone, setMarkingDone] = useState(false)
+  const [undoingDone, setUndoingDone] = useState(false)
 
   async function handleDelete() {
     setDeleting(true)
@@ -121,6 +123,15 @@ function ActivityCard({ item, onEdit, onDelete, onDone, pastDue = false }: Activ
       await onDone(item.id)
     } finally {
       setMarkingDone(false)
+    }
+  }
+
+  async function handleUndoDone() {
+    setUndoingDone(true)
+    try {
+      await onUndoDone(item.id)
+    } finally {
+      setUndoingDone(false)
     }
   }
 
@@ -175,6 +186,16 @@ function ActivityCard({ item, onEdit, onDelete, onDone, pastDue = false }: Activ
                 >
                   <Check aria-hidden="true" size={13} />
                   {markingDone ? '...' : 'Done'}
+                </button>
+              )}
+              {isDone(item) && (
+                <button
+                  onClick={handleUndoDone}
+                  disabled={undoingDone}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <RotateCcw aria-hidden="true" size={13} />
+                  {undoingDone ? '...' : 'Undo'}
                 </button>
               )}
               <button
@@ -249,6 +270,7 @@ export function ActivitiesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [now, setNow] = useState(() => new Date())
+  const [hideDoneHabits, setHideDoneHabits] = useState(false)
   const [hidePastDueReminders, setHidePastDueReminders] = useState(false)
   const [hideDoneReminders, setHideDoneReminders] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -256,9 +278,10 @@ export function ActivitiesPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<FormState>(() => createInitialForm())
 
-  const { habits, pastDueHabits, reminders, pastDueReminders, doneReminders } = useMemo(() => {
+  const { habits, pastDueHabits, doneHabits, reminders, pastDueReminders, doneReminders } = useMemo(() => {
     const activeHabits: Activity[] = []
     const overdueHabits: Activity[] = []
+    const completedHabits: Activity[] = []
     const activeReminders: Activity[] = []
     const overdueReminders: Activity[] = []
     const completedReminders: Activity[] = []
@@ -266,7 +289,8 @@ export function ActivitiesPage() {
     for (const activity of activities) {
       const overdue = isPastDue(activity, now)
       if (activity.activity_kind === 'habit') {
-        if (overdue) overdueHabits.push(activity)
+        if (isDone(activity)) completedHabits.push(activity)
+        else if (overdue) overdueHabits.push(activity)
         else activeHabits.push(activity)
       } else {
         if (isDone(activity)) completedReminders.push(activity)
@@ -278,6 +302,7 @@ export function ActivitiesPage() {
     return {
       habits: activeHabits,
       pastDueHabits: overdueHabits,
+      doneHabits: completedHabits,
       reminders: activeReminders,
       pastDueReminders: overdueReminders,
       doneReminders: completedReminders,
@@ -343,6 +368,17 @@ export function ActivitiesPage() {
     }
   }
 
+  async function handleUndoDone(id: string) {
+    try {
+      const updated = await updateActivityStatus(id, { status: 'pending' })
+      setActivities((prev) => prev.map((item) => (item.id === id ? updated : item)))
+      setError('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to undo activity completion')
+      throw err
+    }
+  }
+
   function closeModal() {
     setModalOpen(false)
     setEditingActivity(null)
@@ -395,7 +431,7 @@ export function ActivitiesPage() {
         <div>
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Activities & Habits</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {habits.length + pastDueHabits.length} habit{habits.length + pastDueHabits.length !== 1 ? 's' : ''} · {reminders.length + pastDueReminders.length + doneReminders.length} reminder{reminders.length + pastDueReminders.length + doneReminders.length !== 1 ? 's' : ''} · {pastDueHabits.length + pastDueReminders.length} past due
+            {habits.length + pastDueHabits.length + doneHabits.length} habit{habits.length + pastDueHabits.length + doneHabits.length !== 1 ? 's' : ''} · {reminders.length + pastDueReminders.length + doneReminders.length} reminder{reminders.length + pastDueReminders.length + doneReminders.length !== 1 ? 's' : ''} · {pastDueHabits.length + pastDueReminders.length} past due
           </p>
         </div>
         <button
@@ -425,7 +461,7 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {habits.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} onUndoDone={handleUndoDone} />
                 ))}
               </div>
             )}
@@ -437,7 +473,25 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {pastDueHabits.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} pastDue />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} onUndoDone={handleUndoDone} pastDue />
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <Section
+            title="Done Habits"
+            count={doneHabits.length}
+            accentClass="text-emerald-600 dark:text-emerald-400"
+            collapsed={hideDoneHabits}
+            onToggle={() => setHideDoneHabits((value) => !value)}
+          >
+            {doneHabits.length === 0 ? (
+              <p className="text-sm text-slate-400 dark:text-slate-500">No completed habits.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {doneHabits.map((item) => (
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} onUndoDone={handleUndoDone} />
                 ))}
               </div>
             )}
@@ -450,7 +504,7 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {reminders.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} onUndoDone={handleUndoDone} />
                 ))}
               </div>
             )}
@@ -468,7 +522,7 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {pastDueReminders.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} pastDue />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} onUndoDone={handleUndoDone} pastDue />
                 ))}
               </div>
             )}
@@ -486,7 +540,7 @@ export function ActivitiesPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {doneReminders.map((item) => (
-                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} />
+                  <ActivityCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} onDone={handleDone} onUndoDone={handleUndoDone} />
                 ))}
               </div>
             )}
