@@ -15,3 +15,64 @@
     font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   }
 }
+
+@layer components {
+  .activity-date-picker {
+    @apply overflow-hidden rounded-lg border border-slate-200 bg-white font-sans text-sm text-slate-800 shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100;
+  }
+
+  .activity-date-picker .react-datepicker__header {
+    @apply border-slate-200 bg-slate-50 px-3 pt-3 dark:border-slate-800 dark:bg-slate-950;
+  }
+
+  .activity-date-picker .react-datepicker__current-month,
+  .activity-date-picker .react-datepicker-time__header,
+  .activity-date-picker .react-datepicker-year-header {
+    @apply text-sm font-semibold text-slate-900 dark:text-slate-100;
+  }
+
+  .activity-date-picker .react-datepicker__day-name,
+  .activity-date-picker .react-datepicker__day,
+  .activity-date-picker .react-datepicker__time-name {
+    @apply text-slate-600 dark:text-slate-300;
+  }
+
+  .activity-date-picker .react-datepicker__day {
+    @apply rounded-md transition-colors hover:bg-slate-100 dark:hover:bg-slate-800;
+  }
+
+  .activity-date-picker .react-datepicker__day--keyboard-selected,
+  .activity-date-picker .react-datepicker__day--selected,
+  .activity-date-picker .react-datepicker__time-list-item--selected {
+    @apply bg-slate-900 text-white dark:bg-white dark:text-slate-900;
+  }
+
+  .activity-date-picker .react-datepicker__day--outside-month {
+    @apply text-slate-300 dark:text-slate-700;
+  }
+
+  .activity-date-picker .react-datepicker__navigation {
+    @apply top-3;
+  }
+
+  .activity-date-picker .react-datepicker__time-container {
+    @apply border-slate-200 dark:border-slate-800;
+  }
+
+  .activity-date-picker .react-datepicker__time,
+  .activity-date-picker .react-datepicker__time-box {
+    @apply bg-white dark:bg-slate-900;
+  }
+
+  .activity-date-picker .react-datepicker__time-list-item {
+    @apply transition-colors hover:bg-slate-100 dark:hover:bg-slate-800;
+  }
+
+  .activity-date-picker-popper {
+    @apply z-50;
+  }
+
+  .activity-mui-time-clock {
+    @apply flex justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
+  }
+}

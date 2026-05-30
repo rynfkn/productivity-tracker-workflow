@@ -1,6 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import DatePicker from 'react-datepicker'
-import { Check, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
+import { TimeClock } from '@mui/x-date-pickers/TimeClock'
+import { CalendarClock, Check, ChevronDown, ChevronUp, Clock, RotateCcw } from 'lucide-react'
 import 'react-datepicker/dist/react-datepicker.css'
 import { createActivity, deleteActivity, listActivities, updateActivity, updateActivityStatus } from '../api'
 import type { Activity, ActivityCreatePayload, ActivityKind, ActivityUpdatePayload } from '../types'
@@ -66,6 +69,24 @@ function toIso(date: Date): string {
   return date.toISOString()
 }
 
+function dateOrRoundedNow(value: Date | null): Date {
+  return value ? new Date(value) : roundToNearest(15, new Date())
+}
+
+function withDate(current: Date | null, selectedDate: Date | null): Date | null {
+  if (!selectedDate) return null
+  const next = dateOrRoundedNow(current)
+  next.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
+  return next
+}
+
+function withClockTime(current: Date | null, clockValue: Date | null): Date | null {
+  if (!clockValue) return current
+  const next = dateOrRoundedNow(current)
+  next.setHours(clockValue.getHours(), clockValue.getMinutes(), 0, 0)
+  return next
+}
+
 function parseOffsets(input: string): number[] {
   const values = input
     .split(',')
@@ -94,6 +115,59 @@ function statusChipClass(status: string): string {
 
 const inputClass =
   'rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition-shadow focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-slate-800 text-slate-900 dark:text-slate-100'
+
+interface SchedulePickerProps {
+  label: string
+  value: Date | null
+  placeholder: string
+  onChange: (value: Date | null) => void
+}
+
+function SchedulePicker({ label, value, placeholder, onChange }: SchedulePickerProps) {
+  const selectedTime = dateOrRoundedNow(value)
+
+  return (
+    <div className="grid gap-2">
+      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</span>
+      <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-950/50">
+        <div className="flex items-center gap-2">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:ring-slate-800">
+            <CalendarClock aria-hidden="true" size={17} />
+          </div>
+          <DatePicker
+            selected={value}
+            onChange={(selectedDate: Date | null) => onChange(withDate(value, selectedDate))}
+            dateFormat="EEE, MMM d"
+            placeholderText={placeholder}
+            wrapperClassName="min-w-0 flex-1"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-slate-800"
+            calendarClassName="activity-date-picker"
+            popperClassName="z-50 activity-date-picker-popper"
+            popperPlacement="bottom-start"
+          />
+        </div>
+
+        <div className="mt-3 grid gap-3 rounded-md border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <Clock aria-hidden="true" size={15} />
+            {selectedTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </div>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <div className="activity-mui-time-clock">
+              <TimeClock
+                value={selectedTime}
+                onChange={(clockValue) => onChange(withClockTime(value, clockValue))}
+                ampm
+                views={['hours', 'minutes']}
+              />
+            </div>
+          </LocalizationProvider>
+        </div>
+
+      </div>
+    </div>
+  )
+}
 
 interface ActivityCardProps {
   item: Activity
@@ -550,24 +624,27 @@ export function ActivitiesPage() {
 
       {modalOpen && (
         <div
-          className="fixed inset-0 z-20 grid place-items-center bg-black/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-20 grid place-items-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
           onClick={closeModal}
         >
           <div
-            className="w-full max-w-lg rounded-xl border border-slate-200/60 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900"
+            className="my-6 flex max-h-[calc(100vh-3rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200/60 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="mb-5 text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {isEdit ? `Edit ${editingActivity!.activity_kind}` : 'Add activity'}
-            </h3>
+            <div className="border-b border-slate-200/70 px-6 py-5 dark:border-slate-800">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {isEdit ? `Edit ${editingActivity!.activity_kind}` : 'Add activity'}
+              </h3>
+            </div>
 
-            {error && (
-              <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
-                {error}
-              </div>
-            )}
+            <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit}>
+              <div className="grid gap-4 overflow-y-auto px-6 py-5">
+                {error && (
+                  <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+                    {error}
+                  </div>
+                )}
 
-            <form className="grid gap-4" onSubmit={submit}>
               <label className="grid gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
                 {isEdit ? (form.activity_kind === 'habit' ? 'Habit' : 'Activity') : 'Activity'} name
                 <input
@@ -596,36 +673,20 @@ export function ActivitiesPage() {
               )}
 
               {form.activity_kind === 'habit' && (
-                <label className="grid gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Start schedule
-                  <DatePicker
-                    selected={form.start_at}
-                    onChange={(value: Date | null) => setForm((prev) => ({ ...prev, start_at: value }))}
-                    showTimeSelect
-                    timeIntervals={15}
-                    timeCaption="Time"
-                    dateFormat="PPpp"
-                    placeholderText="Choose start date and time"
-                    className={`w-full ${inputClass}`}
-                    popperClassName="z-50"
-                  />
-                </label>
+                <SchedulePicker
+                  label="Start schedule"
+                  value={form.start_at}
+                  onChange={(value) => setForm((prev) => ({ ...prev, start_at: value }))}
+                  placeholder="Choose start date and time"
+                />
               )}
 
-              <label className="grid gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-                Deadline schedule
-                <DatePicker
-                  selected={form.deadline_at}
-                  onChange={(value: Date | null) => setForm((prev) => ({ ...prev, deadline_at: value }))}
-                  showTimeSelect
-                  timeIntervals={15}
-                  timeCaption="Time"
-                  dateFormat="PPpp"
-                  placeholderText="Choose deadline date and time"
-                  className={`w-full ${inputClass}`}
-                  popperClassName="z-50"
-                />
-              </label>
+              <SchedulePicker
+                label="Deadline schedule"
+                value={form.deadline_at}
+                onChange={(value) => setForm((prev) => ({ ...prev, deadline_at: value }))}
+                placeholder="Choose deadline date and time"
+              />
 
               <label className="grid gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
                 Reminder offsets (minutes)
@@ -637,7 +698,9 @@ export function ActivitiesPage() {
                 />
               </label>
 
-              <div className="mt-2 flex justify-end gap-2">
+              </div>
+
+              <div className="sticky bottom-0 flex justify-end gap-2 border-t border-slate-200/70 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
                 <button
                   type="button"
                   className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
