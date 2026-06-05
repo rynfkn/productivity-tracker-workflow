@@ -32,7 +32,8 @@ python -m app.db.cli migrate
 # Create the database, create missing tables, and seed example data.
 python -m app.db.cli setup --seed
 
-# Add example rows and reminder schedules.
+# Add dashboard-friendly development rows, completions, habit history, and
+# reminder schedules.
 python -m app.db.cli seed
 
 # Drop and recreate all tables, then seed example data. This deletes table data.
