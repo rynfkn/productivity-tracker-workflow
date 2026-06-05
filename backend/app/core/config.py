@@ -13,6 +13,8 @@ class Settings(BaseSettings):
 
     USER_CHAT_ID: str = ""
 
+    CORS_ORIGINS: str = "*"
+
     SCHEDULER_ENABLED: bool = True
     SCHEDULER_INTERVAL_SECONDS: int = 60
     SCHEDULER_TIMEZONE: str = "Asia/Jakarta"
