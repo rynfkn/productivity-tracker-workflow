@@ -30,17 +30,16 @@ jobs:
           source antenv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Create deployment package
+        run: |
+          zip -r python-app.zip backend workflow requirements.txt -x "*/__pycache__/*"
                 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            backend/
-            workflow/
-            requirements.txt
-            !antenv/
-            !**/__pycache__/
+          path: python-app.zip
       
 
   deploy:
@@ -69,5 +68,5 @@ jobs:
         with:
           app-name: 'productivity-tracker'
           slot-name: 'Production'
-          package: .
+          package: python-app.zip
           
