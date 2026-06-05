@@ -15,11 +15,54 @@ interface HeatWeek {
   monthLabel: string | null
 }
 
+const ILLUSTRATION_BASE_PATH = '/illustration'
+const ILLUSTRATION_MAX_INDEX = 50
+const ILLUSTRATION_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
+const ILLUSTRATION_ROTATION_MS = 1 * 60 * 1000
+
 function toDateKey(date: Date) {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
   const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+function illustrationSeed(date: Date) {
+  const startOfYear = new Date(date.getFullYear(), 0, 0)
+  const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / 86400000)
+  const timeSlot = date.getHours() * 60 + date.getMinutes()
+  return dayOfYear * 1440 + timeSlot
+}
+
+function buildIllustrationCandidates(date: Date) {
+  const seed = illustrationSeed(date)
+  const candidates: string[] = []
+
+  for (let offset = 0; offset < ILLUSTRATION_MAX_INDEX; offset++) {
+    const imageIndex = ((seed + offset) % ILLUSTRATION_MAX_INDEX) + 1
+    for (const extension of ILLUSTRATION_EXTENSIONS) {
+      candidates.push(`${ILLUSTRATION_BASE_PATH}/illustration_${imageIndex}.${extension}`)
+    }
+  }
+
+  return candidates
+}
+
+async function findAvailableIllustration(date: Date) {
+  const candidates = buildIllustrationCandidates(date)
+
+  for (const candidate of candidates) {
+    const exists = await new Promise<boolean>((resolve) => {
+      const image = new Image()
+      image.onload = () => resolve(true)
+      image.onerror = () => resolve(false)
+      image.src = candidate
+    })
+
+    if (exists) return candidate
+  }
+
+  return `${ILLUSTRATION_BASE_PATH}/illustration_1.jpg`
 }
 
 function startOfDay(date: Date): Date {
@@ -108,8 +151,35 @@ export function DashboardPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [today, setToday] = useState<ProgressSummary | null>(null)
   const [habitProgress, setHabitProgress] = useState<HabitProgress[]>([])
+  const [illustrationSrc, setIllustrationSrc] = useState('/illustration/illustration_1.jpg')
+  const [visibleIllustrationSrc, setVisibleIllustrationSrc] = useState('/illustration/illustration_1.jpg')
+  const [illustrationLoaded, setIllustrationLoaded] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
+
+  useEffect(() => {
+    let active = true
+
+    async function updateIllustration() {
+      const nextSrc = await findAvailableIllustration(new Date())
+      if (active) setIllustrationSrc(nextSrc)
+    }
+
+    void updateIllustration()
+    const intervalId = window.setInterval(() => {
+      void updateIllustration()
+    }, ILLUSTRATION_ROTATION_MS)
+
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (illustrationSrc === visibleIllustrationSrc) return
+    setIllustrationLoaded(false)
+  }, [illustrationSrc, visibleIllustrationSrc])
 
   useEffect(() => {
     let active = true
@@ -174,6 +244,30 @@ export function DashboardPage() {
 
   return (
     <section className="grid gap-6">
+      <article className="relative h-[260px] overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-100 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:h-[300px]">
+        <img
+          src={visibleIllustrationSrc}
+          alt="Peaceful landscape illustration"
+          className={`h-full w-full object-cover object-center transition-opacity duration-700 ${
+            illustrationLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          onLoad={() => setIllustrationLoaded(true)}
+        />
+        {illustrationSrc !== visibleIllustrationSrc && (
+          <img
+            src={illustrationSrc}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-0"
+            onLoad={() => {
+              setVisibleIllustrationSrc(illustrationSrc)
+              window.requestAnimationFrame(() => setIllustrationLoaded(true))
+            }}
+          />
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-white/10 dark:from-slate-950/45 dark:to-slate-950/10" />
+      </article>
+
       <div className="grid gap-4 md:grid-cols-3">
         <article className="flex flex-col justify-between rounded-lg border border-slate-200/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900/50">
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -322,4 +416,3 @@ export function DashboardPage() {
     </section>
   )
 }
-
