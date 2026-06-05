@@ -114,7 +114,7 @@ function statusChipClass(status: string): string {
 }
 
 const inputClass =
-  'rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition-shadow focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-slate-800 text-slate-900 dark:text-slate-100'
+  'min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition-shadow focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-slate-800 text-slate-900 dark:text-slate-100'
 
 interface SchedulePickerProps {
   label: string
@@ -130,7 +130,7 @@ function SchedulePicker({ label, value, placeholder, onChange }: SchedulePickerP
     <div className="grid gap-2">
       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</span>
       <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-950/50">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:ring-slate-800">
             <CalendarClock aria-hidden="true" size={17} />
           </div>
@@ -211,14 +211,14 @@ function ActivityCard({ item, onEdit, onDelete, onDone, onUndoDone, pastDue = fa
 
   return (
     <article
-      className={`rounded-lg border bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-slate-900/50 ${
+      className={`min-w-0 rounded-lg border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:bg-slate-900/50 sm:p-5 ${
         pastDue
           ? 'border-rose-200 ring-1 ring-rose-100 dark:border-rose-900/80 dark:ring-rose-950'
           : 'border-slate-200/60 dark:border-slate-800'
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-wrap gap-2">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-wrap gap-2">
           <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${kindChipClass(item.activity_kind)}`}>
             {item.activity_kind}
           </span>
@@ -231,7 +231,7 @@ function ActivityCard({ item, onEdit, onDelete, onDone, onUndoDone, pastDue = fa
             </span>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:justify-end">
           {confirming ? (
             <>
               <span className="text-xs text-slate-500 dark:text-slate-400">Delete?</span>
@@ -288,16 +288,16 @@ function ActivityCard({ item, onEdit, onDelete, onDone, onUndoDone, pastDue = fa
           )}
         </div>
       </div>
-      <h3 className="mb-3 mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">{item.activity_name}</h3>
-      <dl className="grid grid-cols-[120px_1fr] gap-y-1.5 text-sm">
+      <h3 className="mb-3 mt-2 break-words text-base font-semibold text-slate-900 dark:text-slate-100">{item.activity_name}</h3>
+      <dl className="grid gap-y-1.5 text-sm sm:grid-cols-[120px_1fr]">
         <dt className="text-slate-500 dark:text-slate-400">Start</dt>
-        <dd className="text-slate-800 dark:text-slate-200">{formatDateTime(item.start_at)}</dd>
+        <dd className="break-words text-slate-800 dark:text-slate-200">{formatDateTime(item.start_at)}</dd>
         <dt className="text-slate-500 dark:text-slate-400">Deadline</dt>
-        <dd className="text-slate-800 dark:text-slate-200">{formatDateTime(item.deadline_at)}</dd>
+        <dd className="break-words text-slate-800 dark:text-slate-200">{formatDateTime(item.deadline_at)}</dd>
         <dt className="text-slate-500 dark:text-slate-400">Offsets (min)</dt>
-        <dd className="text-slate-800 dark:text-slate-200">{item.reminder_offsets_minutes?.join(', ') || '-'}</dd>
+        <dd className="break-words text-slate-800 dark:text-slate-200">{item.reminder_offsets_minutes?.join(', ') || '-'}</dd>
         <dt className="text-slate-500 dark:text-slate-400">Completed at</dt>
-        <dd className="text-slate-800 dark:text-slate-200">{formatDateTime(item.completed_at)}</dd>
+        <dd className="break-words text-slate-800 dark:text-slate-200">{formatDateTime(item.completed_at)}</dd>
       </dl>
     </article>
   )
@@ -315,9 +315,9 @@ interface SectionProps {
 function Section({ title, count, accentClass, children, collapsed = false, onToggle }: SectionProps) {
   return (
     <div className="grid gap-3">
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <div className="flex items-center gap-1.5">
-          <span className={`text-sm font-semibold tracking-wide ${accentClass}`}>{title}</span>
+          <span className={`break-words text-sm font-semibold tracking-wide ${accentClass}`}>{title}</span>
           {onToggle && (
             <button
               type="button"
@@ -501,15 +501,15 @@ export function ActivitiesPage() {
 
   return (
     <section className="grid gap-6">
-      <article className="flex items-center justify-between rounded-lg border border-slate-200/60 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
-        <div>
+      <article className="flex flex-col gap-4 rounded-lg border border-slate-200/60 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/50 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="min-w-0">
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Activities & Habits</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             {habits.length + pastDueHabits.length + doneHabits.length} habit{habits.length + pastDueHabits.length + doneHabits.length !== 1 ? 's' : ''} · {reminders.length + pastDueReminders.length + doneReminders.length} reminder{reminders.length + pastDueReminders.length + doneReminders.length !== 1 ? 's' : ''} · {pastDueHabits.length + pastDueReminders.length} past due
           </p>
         </div>
         <button
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+          className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 sm:w-auto"
           onClick={openCreate}
         >
           + Add activity
@@ -624,21 +624,21 @@ export function ActivitiesPage() {
 
       {modalOpen && (
         <div
-          className="fixed inset-0 z-20 grid place-items-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-20 grid place-items-center overflow-y-auto bg-black/50 p-2 backdrop-blur-sm sm:p-4"
           onClick={closeModal}
         >
           <div
-            className="my-6 flex max-h-[calc(100vh-3rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200/60 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900"
+            className="my-2 flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200/60 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 sm:my-6 sm:max-h-[calc(100dvh-3rem)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-b border-slate-200/70 px-6 py-5 dark:border-slate-800">
+            <div className="border-b border-slate-200/70 px-4 py-4 dark:border-slate-800 sm:px-6 sm:py-5">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {isEdit ? `Edit ${editingActivity!.activity_kind}` : 'Add activity'}
               </h3>
             </div>
 
             <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit}>
-              <div className="grid gap-4 overflow-y-auto px-6 py-5">
+              <div className="grid gap-4 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
                 {error && (
                   <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
                     {error}
@@ -700,7 +700,7 @@ export function ActivitiesPage() {
 
               </div>
 
-              <div className="sticky bottom-0 flex justify-end gap-2 border-t border-slate-200/70 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+              <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-slate-200/70 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:justify-end sm:px-6">
                 <button
                   type="button"
                   className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"

@@ -243,8 +243,8 @@ export function DashboardPage() {
   }
 
   return (
-    <section className="grid gap-6">
-      <article className="relative h-[260px] overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-100 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:h-[300px]">
+    <section className="grid min-w-0 gap-4 sm:gap-6">
+      <article className="relative h-[200px] overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-100 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:h-[300px]">
         <img
           src={visibleIllustrationSrc}
           alt="Peaceful landscape illustration"
@@ -268,34 +268,34 @@ export function DashboardPage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-white/10 dark:from-slate-950/45 dark:to-slate-950/10" />
       </article>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <article className="flex flex-col justify-between rounded-lg border border-slate-200/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900/50">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-3 sm:gap-4">
+        <article className="flex min-w-0 flex-col justify-between rounded-lg border border-slate-200/60 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900/50 sm:p-5">
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             Completed Today
           </p>
-          <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
             {today?.total_completed ?? 0}
           </p>
         </article>
-        <article className="flex flex-col justify-between rounded-lg border border-slate-200/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900/50">
+        <article className="flex min-w-0 flex-col justify-between rounded-lg border border-slate-200/60 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900/50 sm:p-5">
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             Planned Today
           </p>
-          <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
             {today?.total_planned ?? 0}
           </p>
         </article>
-        <article className="flex flex-col justify-between rounded-lg border border-slate-200/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900/50">
+        <article className="flex min-w-0 flex-col justify-between rounded-lg border border-slate-200/60 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900/50 sm:p-5">
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             Completion Rate
           </p>
-          <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
             {Math.round((today?.completion_rate ?? 0) * 100)}%
           </p>
         </article>
       </div>
 
-      <article className="rounded-lg border border-slate-200/60 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+      <article className="min-w-0 rounded-lg border border-slate-200/60 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/50 sm:p-6">
         <div className="mb-6">
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Contribution Activity
@@ -305,7 +305,7 @@ export function DashboardPage() {
           </p>
         </div>
 
-        <div className="overflow-x-auto pb-4">
+        <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0">
           <div className="flex w-fit min-w-full gap-1">
             {/* Y-Axis Labels: Mon, Wed, Fri */}
             <div className="flex flex-col gap-[3px] pt-[20px] pr-2 text-[10px] leading-[10px] text-slate-400 dark:text-slate-500">
@@ -352,7 +352,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-end gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-1.5 text-xs text-slate-500 dark:text-slate-400">
           <span className="px-1">Less</span>
           <span className={`h-[10px] w-[10px] rounded-[2px] ${heatClass(0)} outline outline-1 outline-offset-[-1px] outline-black/5 dark:outline-white/5`} />
           <span className={`h-[10px] w-[10px] rounded-[2px] ${heatClass(1)} outline outline-1 outline-offset-[-1px] outline-black/5 dark:outline-white/5`} />
@@ -363,7 +363,7 @@ export function DashboardPage() {
         </div>
       </article>
 
-      <article className="rounded-lg border border-slate-200/60 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+      <article className="min-w-0 rounded-lg border border-slate-200/60 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/50 sm:p-6">
         <div className="mb-5">
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Habit Progress</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -374,8 +374,8 @@ export function DashboardPage() {
         {habitProgress.length === 0 ? (
           <p className="text-sm text-slate-400 dark:text-slate-500">No habit data yet. Complete or miss a habit to see progress here.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <table className="min-w-[560px] w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500">
                   <th className="pb-3 pr-4">Habit</th>

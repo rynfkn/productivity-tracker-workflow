@@ -67,16 +67,16 @@ function App() {
   }, [route])
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end justify-between border-b border-slate-200/60 pb-5 dark:border-slate-800/60">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">Productivity</h1>
+    <div className="mx-auto w-full max-w-5xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
+      <header className="mb-6 flex min-w-0 flex-col gap-4 border-b border-slate-200/60 pb-4 dark:border-slate-800/60 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:pb-5">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-3xl">Productivity</h1>
           <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <nav className="flex space-x-1 rounded-lg bg-slate-100/80 p-1 dark:bg-slate-800/80" aria-label="Main navigation">
+        <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
+          <nav className="flex min-w-0 flex-1 space-x-1 rounded-lg bg-slate-100/80 p-1 dark:bg-slate-800/80 sm:flex-none" aria-label="Main navigation">
             <button
-              className={`flex items-center rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`flex flex-1 items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none sm:px-4 ${
                 route === '/dashboard'
                   ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white'
                   : 'text-slate-500 hover:bg-white/50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700/50 dark:hover:text-slate-300'
@@ -86,7 +86,7 @@ function App() {
               Dashboard
             </button>
             <button
-              className={`flex items-center rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`flex flex-1 items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none sm:px-4 ${
                 route === '/activities'
                   ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white'
                   : 'text-slate-500 hover:bg-white/50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700/50 dark:hover:text-slate-300'
@@ -99,7 +99,7 @@ function App() {
           <button
             onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
             aria-label="Toggle theme"
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+            className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
           >
             {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
           </button>

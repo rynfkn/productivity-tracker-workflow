@@ -14,6 +14,19 @@
     @apply m-0 bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
     font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+  }
 }
 
 @layer components {
@@ -69,10 +82,21 @@
   }
 
   .activity-date-picker-popper {
-    @apply z-50;
+    @apply z-50 max-w-[calc(100vw-1rem)];
   }
 
   .activity-mui-time-clock {
-    @apply flex justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
+    @apply flex max-w-full justify-center overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
+  }
+
+  .activity-mui-time-clock .MuiClock-root {
+    max-width: 100%;
+  }
+
+  @media (max-width: 380px) {
+    .activity-mui-time-clock .MuiClock-root {
+      transform: scale(0.9);
+      transform-origin: top center;
+    }
   }
 }
