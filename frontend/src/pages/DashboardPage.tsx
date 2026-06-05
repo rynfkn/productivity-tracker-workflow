@@ -306,49 +306,51 @@ export function DashboardPage() {
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0">
-          <div className="flex w-fit min-w-full gap-1">
+          <div className="contribution-map">
             {/* Y-Axis Labels: Mon, Wed, Fri */}
-            <div className="flex flex-col gap-[3px] pt-[20px] pr-2 text-[10px] leading-[10px] text-slate-400 dark:text-slate-500">
-              <span className="invisible h-[10px]" aria-hidden>Sun</span>
-              <span className="h-[10px]">Mon</span>
-              <span className="invisible h-[10px]" aria-hidden>Tue</span>
-              <span className="h-[10px]">Wed</span>
-              <span className="invisible h-[10px]" aria-hidden>Thu</span>
-              <span className="h-[10px]">Fri</span>
-              <span className="invisible h-[10px]" aria-hidden>Sat</span>
+            <div className="contribution-y-axis text-slate-400 dark:text-slate-500">
+              <span className="invisible" aria-hidden>Sun</span>
+              <span>Mon</span>
+              <span className="invisible" aria-hidden>Tue</span>
+              <span>Wed</span>
+              <span className="invisible" aria-hidden>Thu</span>
+              <span>Fri</span>
+              <span className="invisible" aria-hidden>Sat</span>
             </div>
 
             {/* The 53 weeks grid */}
-            {weeks.map((week, wIndex) => (
-              <div key={wIndex} className="relative flex flex-col gap-[3px]">
-                {/* Month Label Header */}
-                <div className="h-[20px]">
-                  {week.monthLabel && (
-                    <span className="absolute left-0 top-0 whitespace-nowrap text-[10px] text-slate-400 dark:text-slate-500">
-                      {week.monthLabel}
-                    </span>
-                  )}
-                </div>
+            <div className="contribution-weeks">
+              {weeks.map((week, wIndex) => (
+                <div key={wIndex} className="contribution-week">
+                  {/* Month Label Header */}
+                  <div className="relative h-5">
+                    {week.monthLabel && (
+                      <span className="absolute left-0 top-0 whitespace-nowrap text-[10px] text-slate-400 dark:text-slate-500">
+                        {week.monthLabel}
+                      </span>
+                    )}
+                  </div>
 
-                {/* 7 Days of the week */}
-                {week.days.map((day) => (
-                  <div
-                    key={day.dateKey}
-                    className={`h-[10px] w-[10px] rounded-[2px] ${
-                      day.inFuture ? 'bg-transparent' : heatClass(day.level)
-                    } ${!day.inFuture && 'outline outline-1 outline-offset-[-1px] outline-black/5 dark:outline-white/5'}`}
-                    title={
-                      day.inFuture
-                        ? undefined
-                        : `${day.count === 0 ? 'No' : day.count} activities on ${day.date.toLocaleString(
-                            'default',
-                            { month: 'short', day: 'numeric', year: 'numeric' },
-                          )}`
-                    }
-                  />
-                ))}
-              </div>
-            ))}
+                  {/* 7 Days of the week */}
+                  {week.days.map((day) => (
+                    <div
+                      key={day.dateKey}
+                      className={`contribution-cell rounded-[2px] ${
+                        day.inFuture ? 'bg-transparent' : heatClass(day.level)
+                      } ${!day.inFuture && 'outline outline-1 outline-offset-[-1px] outline-black/5 dark:outline-white/5'}`}
+                      title={
+                        day.inFuture
+                          ? undefined
+                          : `${day.count === 0 ? 'No' : day.count} activities on ${day.date.toLocaleString(
+                              'default',
+                              { month: 'short', day: 'numeric', year: 'numeric' },
+                            )}`
+                      }
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
