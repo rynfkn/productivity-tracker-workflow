@@ -158,6 +158,7 @@ function SchedulePicker({ label, value, placeholder, onChange }: SchedulePickerP
                 value={selectedTime}
                 onChange={(clockValue) => onChange(withClockTime(value, clockValue))}
                 ampm
+                ampmInClock
                 views={['hours', 'minutes']}
               />
             </div>
